@@ -1,0 +1,14 @@
+[06-May-2025 10:54:37 Europe/Dublin] PHP Warning:  Array to string conversion in /home/p598801/corporate.powercabs.ie/bookRide.php on line 9
+[06-May-2025 10:57:10 Europe/Dublin] PHP Parse error:  syntax error, unexpected token "echo" in /home/p598801/corporate.powercabs.ie/bookRide.php on line 179
+[15-Sep-2025 19:21:35 Europe/Dublin] PHP Warning:  Trying to access array offset on value of type null in /home/p598801/corporate.powercabs.ie/home.php on line 23
+[15-Sep-2025 19:21:35 Europe/Dublin] PHP Warning:  Trying to access array offset on value of type null in /home/p598801/corporate.powercabs.ie/home.php on line 24
+[15-Sep-2025 19:21:35 Europe/Dublin] PHP Warning:  Trying to access array offset on value of type null in /home/p598801/corporate.powercabs.ie/home.php on line 25
+[15-Sep-2025 19:21:35 Europe/Dublin] PHP Warning:  Trying to access array offset on value of type null in /home/p598801/corporate.powercabs.ie/home.php on line 26
+[15-Oct-2025 11:30:48 Europe/Dublin] PHP Warning:  Trying to access array offset on value of type null in /home/p598801/corporate.powercabs.ie/home.php on line 23
+[15-Oct-2025 11:30:48 Europe/Dublin] PHP Warning:  Trying to access array offset on value of type null in /home/p598801/corporate.powercabs.ie/home.php on line 24
+[15-Oct-2025 11:30:48 Europe/Dublin] PHP Warning:  Trying to access array offset on value of type null in /home/p598801/corporate.powercabs.ie/home.php on line 25
+[15-Oct-2025 11:30:48 Europe/Dublin] PHP Warning:  Trying to access array offset on value of type null in /home/p598801/corporate.powercabs.ie/home.php on line 26
+[22-Oct-2025 16:36:44 Europe/Dublin] PHP Warning:  Trying to access array offset on value of type null in /home/p598801/corporate.powercabs.ie/home.php on line 23
+[22-Oct-2025 16:36:44 Europe/Dublin] PHP Warning:  Trying to access array offset on value of type null in /home/p598801/corporate.powercabs.ie/home.php on line 24
+[22-Oct-2025 16:36:44 Europe/Dublin] PHP Warning:  Trying to access array offset on value of type null in /home/p598801/corporate.powercabs.ie/home.php on line 25
+[22-Oct-2025 16:36:44 Europe/Dublin] PHP Warning:  Trying to access array offset on value of type null in /home/p598801/corporate.powercabs.ie/home.php on line 26

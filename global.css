@@ -1,0 +1,124 @@
+.password-toggle {
+  position: absolute;
+  right: 15px;
+  top: 32px;
+  cursor: pointer;
+  color: #9a9a9a;
+}
+.login-img {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+.sidebar {
+  width: 220px;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  background-color: #1f1f21;
+  transition: transform 0.3s ease;
+  z-index: 1000;
+}
+.active>.page-link{
+  background-color: #ff7a00 !important;
+  border: none !important;
+}
+.main-content {
+  margin-left: 220px;
+  transition: margin 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  .main-content {
+    margin-left: 0;
+  }
+  .sidebar.active {
+    transform: translateX(0);
+  }
+}
+.rotate-icon {
+  transition: transform 0.3s ease;
+}
+.rotate-icon[aria-expanded='true'] {
+  transform: rotate(180deg);
+}
+.navbar {
+  background-color: white;
+  padding: 10px 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.search-container {
+  position: relative;
+  transition: all 0.3s ease;
+}
+.search-input {
+  width: 0;
+  opacity: 0;
+  transition: all 0.3s ease;
+  border: none;
+  background: #f5f7fa;
+  border-radius: 20px;
+  padding-left: 40px;
+}
+.search-container.active .search-input {
+  width: 250px;
+  opacity: 1;
+  padding: 8px 15px 8px 40px;
+}
+.search-icon {
+  position: absolute;
+  left: 10px;
+  z-index: 2;
+}
+.custom-dropdown {
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  padding: 10px 0;
+}
+.custom-dropdown .dropdown-item {
+  padding: 8px 20px;
+}
+@media (min-width: 768px) {
+  .ms-lg-230 {
+    margin-left: 230px !important;
+  }
+}
+.form-check-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.form-check-input + label {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+  padding-left: 30px;
+  font-size: 16px;
+  color: #1f1f21;
+}
+.form-check-input + label::before {
+  content: '';
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background-color: #fff;
+  border: 1px solid #969696;
+  border-radius: 4px;
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.form-check-input:checked + label::before {
+  background-color: #ff7a00;
+  border-color: #ff7a00;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23fff' d='M6.293 10.293l-2.146-2.147-1.414 1.414L6.293 13.12l8.147-8.147-1.414-1.414z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}

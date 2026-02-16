@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
+    <link rel="stylesheet" href="global.css" />
+  </head>
+  <body>
+
+    <nav
+      class="navbar navbar-expand-lg navbar-light bg-white d-flex align-items-center justify-content-between p-3"
+    >
+      <div class="d-flex align-items-center">
+        <button
+          class="navbar-toggler me-2 d-md-none btn btn-light border-none"
+          style="padding: 4px; margin-left: 0px"
+          type="button"
+          id="sidebarToggle"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <h1 class="navbar-title m-0 fw-bold ms-lg-230" id="pageTitle">
+          Promotions & Coupon
+        </h1>
+      </div>
+
+      <div class="d-flex align-items-center">
+        <div class="me-4 d-none d-lg-inline-block">
+          <input
+            type="text"
+            placeholder="Search for something"
+            class="form-control"
+            style="
+              border-radius: 50px;
+              height: 50px;
+              width: 200px;
+              background: #f2f6fd;
+              border: none;
+              padding: 0 20px;
+              font-size: 0.9rem;
+              color: #333;
+            "
+          />
+        </div>
+
+        <div class="d-flex align-items-center ms-3">
+          <button
+            class="btn rounded-circle d-none d-lg-inline-block me-4"
+            style="width: 50px; height: 50px; background: #f2f6fd"
+          >
+            <i
+              class="bi bi-gear-fill"
+              style="color: #969696; font-size: 1.45rem"
+            ></i>
+          </button>
+          <button
+            class="btn rounded-circle d-none d-lg-inline-block me-4"
+            style="width: 50px; height: 50px; background: #f2f6fd"
+          >
+            <i
+              class="bi bi-bell-fill"
+              style="color: #f37a20; font-size: 1.45rem"
+            ></i>
+          </button>
+
+          <div class="dropdown" id="avatarDropdown">
+            <img
+              src="assets/profile.svg"
+              alt="Profile"
+              class="rounded-circle profile-img"
+              style="width: 50px; height: 50px; cursor: pointer"
+            />
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="sidebar text-white p-3">
+      <div class="d-flex flex-column h-100">
+        <div
+          class="sidebar-header mb-10 d-flex justify-content-center align-items-center"
+          style="height: 60px"
+        >
+          <img
+            src="assets/powercabs-logo.svg"
+            alt="Navigation Logo"
+            class="img-fluid"
+            style="max-height: 75px"
+          />
+        </div>
+
+        <ul class="nav nav-pills flex-column mt-4">
+          <li class="nav-item mb-3">
+            <a
+              href="home.html"
+              class="nav-link fw-normal text-white"
+              style="font-size: 18px"
+            >
+              <i
+                class="bi bi-house-door-fill me-2"
+                style="font-size: 1.2rem;"
+              ></i>
+              Dashboard
+            </a>
+          </li>
+          <li class="nav-item mb-3 fw-normal">
+            <a href="employee.html" class="nav-link text-white" style="font-size: 18px;">
+              <i class="bi bi-people-fill me-2" style="font-size: 1.2rem;"></i>
+              Employees
+            </a>
+          </li>
+          <li class="nav-item mb-3 fw-normal">
+            <a href="rideHistory.html" class="nav-link text-white" style="font-size: 18px;">
+              <i class="bi bi-clock-history me-2" style="font-size: 1.2rem;"></i>
+              Rides History
+            </a>
+          </li>
+          <li class="nav-item mb-3 fw-normal">
+            <a href="promotion.html" class="nav-link" style="font-size: 18px;color: #f37a20">
+              <i
+                class="bi bi-ticket-perforated me-2"
+                style="font-size: 1.2rem;color: #f37a20;"
+              ></i>
+              Promotions
+            </a>
+          </li>
+        </ul>
+
+        <div class="mt-auto pt-3">
+          <div class="nav-item dropdown">
+            <a
+              href="#"
+              class="nav-link text-white d-flex justify-content-between align-items-center"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              Company
+              <i class="bi bi-chevron-down rotate-icon ms-2"></i>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-dark">
+              <li>
+                <a class="dropdown-item" href="profile.html"
+                  ><i class="bi bi-person me-2"></i>Profile</a
+                >
+              </li>
+              <li><hr class="dropdown-divider" /></li>
+              <li>
+                <a class="dropdown-item" href="#"
+                  ><i class="bi bi-box-arrow-right me-2"></i>Logout</a
+                >
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <main class="main-content p-4" style="background: #f5f7fa">
+      <div class="card shadow border-0" style='border-radius: 25px;'>
+        <div class="card-body">
+          <div class="p-2 p-sm-5">
+            <div class="row mb-4">
+                <h5 class="mb-3" style="font-size: 22px; font-weight: 600;">New Promotions</h5>
+                <div class="col-lg-6 col-md-6 mb-3">
+                    <div class="card py-1" style='border: 1px solid #f37a20; border-radius: 8px;'>
+                        <div class="card-body d-flex justify-content-between align-items-center promo-card">
+                            <div style="text-align: left;">
+                                <h6 style="font-weight: 700;">Discount up to 30%</h6>
+                                <p>Special promo valid for economy rides.</p>
+                                <button class="btn" style='background: #f37a20;color: #fff;'>Redeem Promo</button>
+                            </div>
+                            <img src="assets/car.svg" alt="Car" style="width: 100%; max-width: 110px; height: auto;" class="img-fluid">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-6 mb-3">
+                  <div class="card py-1" style='border: 1px solid #f37a20; border-radius: 8px;'>
+                      <div class="card-body d-flex justify-content-between align-items-center promo-card">
+                          <div style="text-align: left;">
+                              <h6 style="font-weight: 700;">Discount up to 30%</h6>
+                              <p>Special promo valid for standard rides.</p>
+                              <button class="btn" style='background: #f37a20;color: #fff;'>Redeem Promo</button>
+                          </div>
+                          <img src="assets/car.svg" alt="Car" style="width: 100%; max-width: 110px; height: auto;" class="img-fluid">
+                      </div>
+                  </div>
+              </div>
+            </div>
+
+            <div class="row mb-4">
+                <h5 class="mb-3" style="font-size: 22px; font-weight: 600;">Available Coupons</h5>
+                
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card py-2" style='border: 1px solid #f37a20; border-radius: 8px;'>
+                        <div class="card-body text-center coupon-card">
+                            <div class="mb-1 mt-1" style="color: #f37a20;">
+                                <i class="bi bi-gift-fill" style="font-size: 24px;"></i>
+                            </div>
+                            <p class="coupon-desc" style='color: #7d7878; font-size: 17px;'>Surprise gift for you</p>
+                            <h6 class="mt-3 coupon-title" style='color: #f37a20; font-size: 22px; font-weight: 700;'>30% OFF</h6>
+                            <p class="mb-2" style="font-weight: 500; font-size: 16px;">On Completing 30 Rides</p>
+                            <div class="coupon-code p-2" style='border: 1px dashed #7d7878; border-radius: 6px;'>
+                                <span style="color: #7d7878;">Your coupon code:<br></span> <strong>DH39HX2B</strong>
+                            </div>
+                            <button class="btn px-3 py-2 mt-3" style='background: #f37a20;color: #fff;'>Redeem Coupon</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6 mb-3">
+                  <div class="card py-2" style='border: 1px solid #f37a20; border-radius: 8px;'>
+                      <div class="card-body text-center coupon-card">
+                          <div class="mb-1 mt-1" style="color: #f37a20;">
+                              <i class="bi bi-gift-fill" style="font-size: 24px;"></i>
+                          </div>
+                          <p class="coupon-desc" style='color: #7d7878; font-size: 17px;'>Surprise gift for you</p>
+                          <h6 class="mt-3 coupon-title" style='color: #f37a20; font-size: 22px; font-weight: 700;'>25% OFF</h6>
+                          <p class="mb-2" style="font-weight: 500; font-size: 16px;">On First Ride</p>
+                          <div class="coupon-code p-2" style='border: 1px dashed #7d7878; border-radius: 6px;'>
+                              <span style="color: #7d7878;">Your coupon code:<br></span> <strong>NEW25RIDE</strong>
+                          </div>
+                          <button class="btn px-3 py-2 mt-3" style='background: #f37a20;color: #fff;'>Redeem Coupon</button>
+                      </div>
+                  </div>
+              </div>
+
+              <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card py-2" style='border: 1px solid #f37a20; border-radius: 8px;'>
+                    <div class="card-body text-center coupon-card">
+                        <div class="mb-1 mt-1" style="color: #f37a20;">
+                            <i class="bi bi-gift-fill" style="font-size: 24px;"></i>
+                        </div>
+                        <p class="coupon-desc" style='color: #7d7878; font-size: 17px;'>Surprise gift for you</p>
+                        <h6 class="mt-3 coupon-title" style='color: #f37a20; font-size: 22px; font-weight: 700;'>50% OFF</h6>
+                        <p class="mb-2" style="font-weight: 500; font-size: 16px;">On Referral Ride</p>
+                        <div class="coupon-code p-2" style='border: 1px dashed #7d7878; border-radius: 6px;'>
+                            <span style="color: #7d7878;">Your coupon code:<br></span> <strong>REFER50TY</strong>
+                        </div>
+                        <button class="btn px-3 py-2 mt-3" style='background: #f37a20;color: #fff;'>Redeem Coupon</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6 mb-3">
+              <div class="card py-2" style='border: 1px solid #f37a20; border-radius: 8px;'>
+                  <div class="card-body text-center coupon-card">
+                      <div class="mb-1 mt-1" style="color: #f37a20;">
+                          <i class="bi bi-gift-fill" style="font-size: 24px;"></i>
+                      </div>
+                      <p class="coupon-desc" style='color: #7d7878; font-size: 17px;'>Surprise gift for you</p>
+                      <h6 class="mt-3 coupon-title" style='color: #f37a20; font-size: 22px; font-weight: 700;'>50% OFF</h6>
+                      <p class="mb-2" style="font-weight: 500; font-size: 16px;">On Referral Ride</p>
+                      <div class="coupon-code p-2" style='border: 1px dashed #7d7878; border-radius: 6px;'>
+                          <span style="color: #7d7878;">Your coupon code:<br></span> <strong>REFER50TY</strong>
+                      </div>
+                      <button class="btn px-3 py-2 mt-3" style='background: #f37a20;color: #fff;'>Redeem Coupon</button>
+                  </div>
+              </div>
+          </div>
+
+            </div>
+        </div>
+
+        </div>
+    </div>
+</div>
+
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      document
+        .getElementById('sidebarToggle')
+        .addEventListener('click', function () {
+          document.querySelector('.sidebar').classList.toggle('active');
+        });
+
+      document.addEventListener('click', function (event) {
+        const sidebar = document.querySelector('.sidebar');
+        if (
+          window.innerWidth < 768 &&
+          !event.target.closest('.sidebar') &&
+          !event.target.closest('#sidebarToggle')
+        ) {
+          sidebar.classList.remove('active');
+        }
+      });
+      function updatePageTitle() {
+        const routeTitles = {
+          '/dashboard': 'Dashboard',
+          '/employee': 'Employee Directory',
+          '/ride-history': 'Ride History',
+          '/book-ride': 'Book a Ride',
+          '/promotion': 'Promotions & Coupon',
+          '/profile': 'Profile',
+        };
+        const path = window.location.pathname;
+        document.getElementById('pageTitle').textContent =
+          routeTitles[path] || 'Dashboard';
+      }
+
+      function toggleSidebar() {
+        console.log('Sidebar toggle functionality would go here');
+      }
+    </script>
+  </body>
+</html>
