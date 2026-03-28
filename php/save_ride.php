@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once('connection.php'); // Make sure this defines $conn properly
+require_once __DIR__ . '/../auth/supabase.php';
 
 header('Content-Type: application/json');
 
@@ -11,8 +11,8 @@ if (!isset($_SESSION['user'])) {
 }
 
 $user = $_SESSION['user'];
-$companyname = $conn->real_escape_string($user['name']);
-$cid = intval($user['cid']);
+$companyname = $user['name'];
+$cid = $user['cid'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = json_decode(file_get_contents('php://input'), true);
@@ -26,14 +26,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Sanitize values
-    $employee_id    = $conn->real_escape_string($data['employee_id']);
-    $employee       = $conn->real_escape_string($data['employee_name']);
-    $pickup         = $conn->real_escape_string($data['pickup']);
-    $destination    = $conn->real_escape_string($data['dropoff']);
-    $carType        = $conn->real_escape_string($data['carType']);
-    $pickupTime     = $conn->real_escape_string($data['pickupTime']);
-    $paymentSource  = $conn->real_escape_string($data['paymentSource']);
+    $employee_id    = $data['employee_id'];
+    $employee       = $data['employee_name'];
+    $pickup         = $data['pickup'];
+    $destination    = $data['dropoff'];
+    $carType        = $data['carType'];
+    $pickupTime     = $data['pickupTime'];
+    $paymentSource  = $data['paymentSource'];
     $fare           = floatval($data['fare']);
     $eta            = floatval($data['eta']);
     $distance       = floatval($data['distance']);
@@ -44,28 +43,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $price = $fare;
     $date = date('Y-m-d H:i:s');
 
-    // Insert query with prepared statement
-    $stmt = $conn->prepare("INSERT INTO corporate_rides (
-        company, employee, employee_id, pickup, destination, 
-        payment_source, pickupTime, carType, price, vehicle_number, 
-        status, cid, fare, eta, distance, date
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-
-    if ($stmt === false) {
-        echo json_encode(['success' => false, 'message' => 'Prepare failed: ' . $conn->error]);
-        exit;
-    }
-
-    $stmt->bind_param(
-        "sssssssssssiddds",
-        $companyname, $employee, $employee_id, $pickup, $destination,
-        $paymentSource, $pickupTime, $carType, $price, $vehicle_number,
-        $status, $cid, $fare, $eta, $distance, $date
-    );
-
-    if ($stmt->execute()) {
+    try {
+    $supabase = new SupabaseClient(true);
+    $supabase->insert('corporate_rides', [
+        'company' => $companyname,
+        'employee' => $employee,
+        'employee_id' => $employee_id,
+        'pickup' => $pickup,
+        'destination' => $destination,
+        'payment_source' => $paymentSource,
+        'pickupTime' => $pickupTime,
+        'carType' => $carType,
+        'price' => $price,
+        'vehicle_number' => $vehicle_number,
+        'status' => $status,
+        'cid' => $cid,
+        'fare' => $fare,
+        'eta' => $eta,
+        'distance' => $distance,
+        'date' => $date
+    ]);
     // Compose WhatsApp message for Dispatcher
-    $message = "🚕 New Ride Request\n\n"
+    $message = "ðŸš• New Ride Request\n\n"
         . "Company: $companyname\n"
         . "Passenger: $employee (ID: $employee_id)\n"
         . "Pickup: $pickup\n"
@@ -73,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         . "Pickup Time: $pickupTime\n"
         . "Car Type: $carType\n"
         . "Payment Source: $paymentSource\n"
-        . "Estimated Fare: $fare �\n"
+        . "Estimated Fare: $fare €\n"
         . "Distance: $distance km\n"
         . "ETA: $eta minutes\n\n"
         . "Please arrange vehicle dispatch promptly.";
@@ -114,16 +113,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         error_log('Telesign cURL error: ' . curl_error($ch));
     }
 
-    curl_close($ch);
 
     echo json_encode(['success' => true, 'message' => 'Ride booked successfully. Dispatcher notified via WhatsApp.']);
-} else {
-    echo json_encode(['success' => false, 'message' => 'Database error: ' . $stmt->error]);
-}
-
-
-    $stmt->close();
-    $conn->close();
+    } catch (Throwable $e) {
+      echo json_encode(['success' => false, 'message' => 'Error saving ride.']);
+    }
 } else {
     echo json_encode(['success' => false, 'message' => 'Invalid request method.']);
 }

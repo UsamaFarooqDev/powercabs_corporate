@@ -1,15 +1,21 @@
-<?php 
+<?php
 session_start();
-@include('php/connection.php');
+require_once __DIR__ . '/auth/supabase.php';
 if (!isset($_SESSION['user'])) {
-    header("Location: index.php");
+    header("Location: login.php");
     exit;
 }
 $user = $_SESSION['user'];
 $cid = $user['cid'];
-$sql = "SELECT * FROM corporate WHERE CID = '$cid'";
-$result = mysqli_query($conn, $sql);
-$row = mysqli_fetch_array($result);
+$row = ['name' => '', 'email' => '', 'phone' => '', 'address' => ''];
+try {
+    $supabase = new SupabaseClient(true);
+    $results = $supabase->select('corporate', ['CID' => $cid], '*', null, 1);
+    if (!empty($results)) {
+        $row = $results[0];
+    }
+} catch (Throwable $e) {
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -35,7 +41,7 @@ $row = mysqli_fetch_array($result);
         <img src="assets/profile.svg" alt="Profile" class="rounded-circle profile-img" style="width: 50px; height: 50px; cursor: pointer" data-bs-toggle="dropdown" aria-expanded="false" />
         <ul class="dropdown-menu dropdown-menu-end">
           <li><a class="dropdown-item" href="#">Profile</a></li>
-          <li><a class="dropdown-item" href="php/logout.php">Logout</a></li>
+          <li><a class="dropdown-item" href="auth/logout.php">Logout</a></li>
         </ul>
       </div>
     </div>

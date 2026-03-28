@@ -1,8 +1,7 @@
 <?php
-@include('connection.php');
+require_once __DIR__ . '/../auth/supabase.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Get POST data
     $employeeId = $_POST['employee'];
     $pickup = $_POST['pickup'];
     $dropoff = $_POST['dropoff'];
@@ -14,21 +13,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $duration = $_POST['duration'];
     $fare = $_POST['fare'];
 
-    // Prepare and bind
-    $stmt = $conn->prepare("INSERT INTO corporate_rides (employee_id, pickup, dropoff, car_type, pickup_time, payment_source, company_name, distance, duration, fare)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    
-    $stmt->bind_param("ssssssssss", 
-        $employeeId, $pickup, $dropoff, $carType, $pickupTime, $paymentSource, $companyName, $distance, $duration, $fare
-    );
-
-    // Execute and check result
-    if ($stmt->execute()) {
+    try {
+    $supabase = new SupabaseClient(true);
+    $supabase->insert('corporate_rides', [
+        'employee_id' => $employeeId,
+        'pickup' => $pickup,
+        'destination' => $dropoff,
+        'carType' => $carType,
+        'pickupTime' => $pickupTime,
+        'payment_source' => $paymentSource,
+        'company' => $companyName,
+        'distance' => $distance,
+        'eta' => $duration,
+        'fare' => $fare,
+        'status' => 'Pending'
+    ]);
         echo "Ride booked successfully.";
-    } else {
-        echo "Error: " . $stmt->error;
+    } catch (Throwable $e) {
+        echo "Error: Unable to book ride.";
     }
-
-    $stmt->close();
 }
 ?>

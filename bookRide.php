@@ -1,16 +1,20 @@
-<?php 
+<?php
 session_start();
-@include('php/connection.php');
+require_once __DIR__ . '/auth/supabase.php';
 if (!isset($_SESSION['user'])) {
-  header("Location: index.php");
+  header("Location: login.php");
   exit;
 }
 $user = $_SESSION['user'];
 $cid = $user['cid'];
-$cname= $user['name'];
-
-$sql = "select * from corporate_employees where cid = '$cid'";
-$result = mysqli_query($conn,$sql);
+$cname = $user['name'];
+$employees = [];
+try {
+  $supabase = new SupabaseClient(true);
+  $employees = $supabase->select('corporate_employees', ['cid' => $cid], 'id,name', 'name.asc');
+} catch (Throwable $e) {
+  $employees = [];
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -179,9 +183,9 @@ $result = mysqli_query($conn,$sql);
                   <label class="form-label me-2" style="min-width: 130px; color: #969696">Passenger</label>
                   <select class="form-select" name="employee" id="employee" style="flex:1">
                     <option value="" disabled selected>Select employee</option>
-                    <?php while($row = mysqli_fetch_array($result)) {
-                      echo '<option value="' . $row['id'] . '">' . $row['name'] . '</option>';
-                    } ?>
+                    <?php foreach ($employees as $row): ?>
+                      <option value="<?= htmlspecialchars($row['id'] ?? ''); ?>"><?= htmlspecialchars($row['name'] ?? ''); ?></option>
+                    <?php endforeach; ?>
                   </select>
                 </div>
                 <input type="hidden" id="employeeName" name="employeeName" />

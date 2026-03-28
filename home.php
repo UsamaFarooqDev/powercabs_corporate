@@ -1,33 +1,36 @@
-<?php 
-
+<?php
 session_start();
-@include('php/connection.php');
+require_once __DIR__ . '/auth/supabase.php';
+
 if (!isset($_SESSION['user'])) {
-  header("Location: index.php"); // Redirect to login if the user is not logged in
+  header("Location: login.php");
   exit;
 }
 $user = $_SESSION['user'];
 $cid = $user['cid'];
-$sql = "select * from corporate_data where company_id = '$cid'";
-$result = mysqli_query($conn,$sql);
-$row = mysqli_num_rows($result);
 
-if($row < 0){
-  $total_ride = 0;
-  $pending_rides = 0;
-  $employees = 0;
-  $expense = 0;
-}
-else{
-   $data = mysqli_fetch_array($result);
-   $total_ride = $data['total_rides'];
-   $pending_rides = $data['pending_rides'];
-   $employees = $data['total_employees'];;
-   $expense = $data['total_fare'];;
-}
+$total_ride = 0;
+$pending_rides = 0;
+$employees = 0;
+$expense = 0.0;
+$rides = [];
 
-$emp = "select * from corporate_rides where cid = '$cid'";
-$result2 = mysqli_query($conn,$emp);
+try {
+  $supabase = new SupabaseClient(true);
+  $rides = $supabase->select('corporate_rides', ['cid' => $cid], '*', 'date.desc', 100);
+  $employeesData = $supabase->select('corporate_employees', ['cid' => $cid], 'id');
+
+  $total_ride = count($rides);
+  $employees = count($employeesData);
+  foreach ($rides as $ride) {
+    if (($ride['status'] ?? '') === 'Pending') {
+      $pending_rides++;
+    }
+    $expense += (float)($ride['fare'] ?? 0);
+  }
+} catch (Throwable $e) {
+  $rides = [];
+}
 ?>
 
 <!DOCTYPE html>
@@ -261,15 +264,12 @@ $result2 = mysqli_query($conn,$emp);
                         </tr>
                     </thead>
                     <tbody id="rides-body">
-                      <?php 
-                        while($emp_data = mysqli_fetch_array($result2))
-                        {
-                      ?>
+                      <?php foreach ($rides as $emp_data): ?>
                         <tr style='border-bottom: 1px solid #e5e5e5;'>
                             <td class='py-3' style='font-size: 14px;'><?= $emp_data['employee']; ?></td>
                             <td class='py-3' style='font-size: 14px;'><?= $emp_data['pickup']; ?></td>
                             <td class='py-3' style='font-size: 14px;'><?= $emp_data['destination']; ?></td>
-                            <td class='py-3' style='font-size: 14px;'><?= $emp_data['pickupTime']; ?></td>
+                            <td class='py-3' style='font-size: 14px;'><?= htmlspecialchars($emp_data['pickupTime'] ?? ''); ?></td>
                             <td class='py-3' style='font-size: 14px;'><?= $emp_data['vehicle_number'] ?? 'N/A' ?></td>
                             <td class='py-3' style='font-size: 14px;'>€<?= $emp_data['fare']; ?></td>
                             <td class='py-3' style='font-size: 14px;'>
@@ -291,9 +291,7 @@ if ($status == 'In Progress') {
 </span>
                             </td>
                         </tr>
-                        <?php 
-                        }
-                        ?>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
@@ -370,6 +368,14 @@ const statusColors = {
     'Pending': '#ff0000',
     'In Progress': '#ff0000',
     'Completed': '#28a745'
+};
+
+const allRides = [];
+const config = {
+    currentPage: 1,
+    entriesPerPage: 9,
+    totalEntries: allRides.length,
+    totalPages: Math.max(1, Math.ceil(allRides.length / 9))
 };
 
 function renderTable() {

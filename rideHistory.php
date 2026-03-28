@@ -1,15 +1,19 @@
-<?php 
-
+<?php
 session_start();
-@include('php/connection.php');
+require_once __DIR__ . '/auth/supabase.php';
 if (!isset($_SESSION['user'])) {
-  header("Location: index.php"); // Redirect to login if the user is not logged in
+  header("Location: login.php");
   exit;
 }
 $user = $_SESSION['user'];
 $cid = $user['cid'];
-$emp = "select * from corporate_rides where cid = '$cid'";
-$result2 = mysqli_query($conn,$emp);
+$rides = [];
+try {
+  $supabase = new SupabaseClient(true);
+  $rides = $supabase->select('corporate_rides', ['cid' => $cid], '*', 'date.desc');
+} catch (Throwable $e) {
+  $rides = [];
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -160,15 +164,12 @@ $result2 = mysqli_query($conn,$emp);
                     </tr>
                     </thead>
                     <tbody>
-                    <?php 
-                        while($emp_data = mysqli_fetch_array($result2))
-                        {
-                      ?>
+                    <?php foreach ($rides as $emp_data): ?>
                         <tr style='border-bottom: 1px solid #e5e5e5;'>
                             <td class='py-3' style='font-size: 14px;'><?= $emp_data['employee']; ?></td>
                             <td class='py-3' style='font-size: 14px;'><?= $emp_data['pickup']; ?></td>
                             <td class='py-3' style='font-size: 14px;'><?= $emp_data['destination']; ?></td>
-                            <td class='py-3' style='font-size: 14px;'><?= $emp_data['pickupTime']; ?></td>
+                            <td class='py-3' style='font-size: 14px;'><?= htmlspecialchars($emp_data['pickupTime'] ?? ''); ?></td>
                             <td class='py-3' style='font-size: 14px;'><?= $emp_data['vehicle_number'] ?? 'N/A' ?></td>
                             <td class='py-3' style='font-size: 14px;'>€<?= $emp_data['fare']; ?></td>
                             <td class='py-3' style='font-size: 14px;'>
@@ -190,9 +191,7 @@ if ($status == 'In Progress') {
 </span>
                             </td>
                         </tr>
-                        <?php 
-                        }
-                        ?>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>

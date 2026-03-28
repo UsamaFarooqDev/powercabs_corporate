@@ -1,6 +1,6 @@
 <?php
 session_start();
-@include 'connection.php';
+require_once __DIR__ . '/../auth/supabase.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $cid = htmlspecialchars(trim($_POST['cid']));
@@ -12,17 +12,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (empty($cid) || empty($name) || empty($email) || empty($phone)) {
         $_SESSION['error'] = "CID, Name, Email, and Phone are required.";
     } else {
-        $stmt = $conn->prepare("UPDATE corporate SET name = ?, email = ?, phone = ?, address = ? WHERE CID = ?");
-        if ($stmt === false) {
-            $_SESSION['error'] = "Database error.";
-        } else {
-            $stmt->bind_param("sssss", $name, $email, $phone, $address, $cid);
-            if ($stmt->execute()) {
-                $_SESSION['success'] = "Profile updated successfully.";
-            } else {
-                $_SESSION['error'] = "Error updating profile.";
+        try {
+            $supabase = new SupabaseClient(true);
+            $supabase->update('corporate', ['CID' => $cid], [
+                'name' => $name,
+                'email' => $email,
+                'phone' => $phone,
+                'address' => $address
+            ]);
+            if (!empty($_SESSION['user']) && $_SESSION['user']['cid'] === $cid) {
+                $_SESSION['user']['name'] = $name;
+                $_SESSION['user']['email'] = $email;
             }
-            $stmt->close();
+            $_SESSION['success'] = "Profile updated successfully.";
+        } catch (Throwable $e) {
+            $_SESSION['error'] = "Error updating profile.";
         }
     }
 }

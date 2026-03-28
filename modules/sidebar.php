@@ -79,7 +79,7 @@
               </li>
               <li><hr class="dropdown-divider" /></li>
               <li>
-                <a class="dropdown-item" href="index.php"
+                <a class="dropdown-item" href="auth/logout.php"
                   ><i class="bi bi-box-arrow-right me-2"></i>Logout</a
                 >
               </li>

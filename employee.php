@@ -1,20 +1,49 @@
-<?php 
+<?php
 session_start();
-@include('php/connection.php');
+require_once __DIR__ . '/auth/supabase.php';
 if (!isset($_SESSION['user'])) {
-  header("Location: index.php"); // Redirect to login if the user is not logged in
+  header("Location: login.php");
   exit;
 }
 $user = $_SESSION['user'];
 $cid = $user['cid'];
 
-$sql = "select * from employee_ride_summary where cid = '$cid'";
-$result = mysqli_query($conn,$sql);
-$row = mysqli_num_rows($result);
-$data = NULL;
-if($row === 0){
-  $data = 'No Employee Found';
-  echo $data;
+$employeesRows = [];
+try {
+  $supabase = new SupabaseClient(true);
+  // Base list: always show all employees even if they have zero rides.
+  $employees = $supabase->select('corporate_employees', ['cid' => $cid], '*', 'name.asc');
+  $summaryRows = [];
+  try {
+    $summaryRows = $supabase->select('employee_ride_summary', ['cid' => $cid], '*', null);
+  } catch (Throwable $e) {
+    // If summary table/view is unavailable, still render employee list.
+    $summaryRows = [];
+  }
+
+  $summaryMap = [];
+  foreach ($summaryRows as $summaryRow) {
+    $summaryId = $summaryRow['Employee_id'] ?? ($summaryRow['id'] ?? null);
+    if ($summaryId) {
+      $summaryMap[$summaryId] = $summaryRow;
+    }
+  }
+
+  foreach ($employees as $employee) {
+    $employeeId = $employee['id'] ?? '';
+    $summary = $summaryMap[$employeeId] ?? [];
+    $employeesRows[] = [
+      'Employee_id' => $employeeId,
+      'name' => $employee['name'] ?? '',
+      'department' => $employee['department'] ?? '',
+      'email' => $employee['email'] ?? '',
+      'phone' => $employee['phone'] ?? '',
+      'number_of_rides' => $summary['number_of_rides'] ?? 0,
+      'expense_of_rides' => $summary['expense_of_rides'] ?? 0
+    ];
+  }
+} catch (Throwable $e) {
+  $employeesRows = [];
 }
 ?>
 <!DOCTYPE html>
@@ -181,13 +210,7 @@ if($row === 0){
   
                     </thead>
                     <tbody>
-                    <?php 
-                      
-                        while($data_emp = mysqli_fetch_array($result))
-                        {
-
-                    
-                      ?>
+                    <?php foreach ($employeesRows as $data_emp): ?>
                         <tr style='border-bottom: 1px solid #e5e5e5;'>
                             <td class='py-3' style='font-size: 14px;'><?= $data_emp['name'] ?></td>
                             <td class='py-3' style='font-size: 14px;'><?= $data_emp['department'] ?></td>
@@ -220,11 +243,7 @@ if($row === 0){
                             </td>
                             
                         </tr>
-                        <?php 
-
-}
-
-?>
+<?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
