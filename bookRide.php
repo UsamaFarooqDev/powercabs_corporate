@@ -136,6 +136,11 @@ try {
     .status-pending {
       color: red;
     }
+
+    /* Places Autocomplete dropdown above fixed header / layout (same issue as dispatcher order form) */
+    .pac-container {
+      z-index: 2000 !important;
+    }
   </style>
   </head>
   <body>
@@ -169,14 +174,6 @@ try {
             
             <!-- Form Column -->
             <div class="col-lg-6 col-md-12">
-              <div class="alert alert-info mb-4 d-none" id="rideInfoAlert">
-                <div class="d-flex justify-content-between">
-                  <div><strong>Distance:</strong> <span id="distance">0</span> km</div>
-                  <div><strong>Duration :</strong> <span id="duration">0</span> min</div>
-                  <div><strong>Fare:</strong> €<span id="fare">0</span></div>
-                </div>
-              </div>
-
               <form id="rideForm">
                 <!-- Passenger -->
                 <div class="mb-4 d-flex align-items-center">
@@ -193,14 +190,14 @@ try {
                 <!-- Pickup -->
                 <div class="mb-4 d-flex align-items-center">
                   <label class="form-label me-2" style="min-width: 130px; color: #969696">Pickup</label>
-                  <input type="text" class="form-control" name="pickup" id="pickup" placeholder="Enter pickup location"/>
+                  <input type="text" class="form-control" name="pickup" id="pickup" placeholder="Enter pickup location" autocomplete="off"/>
                   <input type="hidden" name="companyName" id="companyName" value="<?php echo $cname;?>"/>
                 </div>
 
                 <!-- Dropoff -->
                 <div class="mb-4 d-flex align-items-center">
                   <label class="form-label me-2" style="min-width: 130px; color: #969696">Drop Off</label>
-                  <input type="text" class="form-control" name="dropoff" id="dropoff" placeholder="Enter dropoff location"/>
+                  <input type="text" class="form-control" name="dropoff" id="dropoff" placeholder="Enter dropoff location" autocomplete="off"/>
                 </div>
 
                 <!-- Car Type -->
@@ -224,18 +221,17 @@ try {
                   <label class="form-label me-2" style="min-width: 130px; color: #969696">Payment</label>
                   <select class="form-select" name="paymentSource" id="paymentSource">
                     <option value="Cash">Cash</option>
-                    <option value="Credit Card">Credit Card</option>
                     <option value="Bill to company">Bill to company</option>
                   </select>
                 </div>
 
-                <!-- Stripe Payment Section (hidden until Credit Card is selected) -->
-               <!-- Stripe Payment Section -->
-<div id="paymentSection" class="mb-4 d-none">
-  <label class="form-label" style="color:#969696">Card Payment</label>
-  <div id="payment-element"><!-- Stripe injects card fields here --></div>
-</div>
-
+                <div class="alert alert-warning mb-3 d-none" id="rideSummaryBar">
+                  <div class="d-flex justify-content-between flex-wrap gap-2">
+                    <div><strong>Estimated Fare:</strong> €<span id="summaryFare">0</span></div>
+                    <div><strong>Estimated Time:</strong> <span id="summaryDuration">0</span> min</div>
+                    <div><strong>Distance:</strong> <span id="summaryDistance">0</span> km</div>
+                  </div>
+                </div>
 
                 <!-- Action Buttons -->
                 <div class="d-flex justify-content-between align-items-center p-3">
@@ -282,8 +278,8 @@ try {
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB9ea0A-mjnD5iHfT9X8Dn5YYH4_KZopLI&libraries=places"></script>
-    <script src="https://js.stripe.com/v3/"></script> <!-- Stripe -->
     <script src="js/bookride.js"></script>
+    <!-- Same pattern as pw_dispatcher/order.php: callback runs after Places API is ready (autocomplete suggestions work) -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB9ea0A-mjnD5iHfT9X8Dn5YYH4_KZopLI&libraries=places&callback=initBookRideGoogleMaps" async defer></script>
   </body>
 </html>

@@ -14,22 +14,22 @@ $pending_rides = 0;
 $employees = 0;
 $expense = 0.0;
 $rides = [];
+$ridesFetchError = '';
 
 try {
   $supabase = new SupabaseClient(true);
   $rides = $supabase->select('corporate_rides', ['cid' => $cid], '*', 'date.desc', 100);
-  $employeesData = $supabase->select('corporate_employees', ['cid' => $cid], 'id');
-
   $total_ride = count($rides);
-  $employees = count($employeesData);
-  foreach ($rides as $ride) {
-    if (($ride['status'] ?? '') === 'Pending') {
+  foreach ($rides as $row) {
+    if (($row['status'] ?? '') === 'Pending') {
       $pending_rides++;
     }
-    $expense += (float)($ride['fare'] ?? 0);
+    $expense += floatval($row['fare'] ?? 0);
   }
 } catch (Throwable $e) {
   $rides = [];
+  $ridesFetchError = $e->getMessage();
+  error_log('home.php rides fetch error: ' . $ridesFetchError);
 }
 ?>
 
@@ -159,7 +159,7 @@ try {
               </div>
               <div class="ms-3">
                 <h6 class="text-secondary mb-1">Total Rides</h6>
-                <h4 class="mb-0"><?= $total_ride; ?></h4>
+                <h4 class="mb-0" id="total-rides"><?= $total_ride; ?></h4>
               </div>
             </div>
           </div>
@@ -204,7 +204,7 @@ try {
               </div>
               <div class="ms-3">
                 <h6 class="text-secondary mb-1">Total Expenditures</h6>
-                <h4 class="mb-0">€<?= $expense; ?></h4>
+                <h4 class="mb-0">€<span id="total-expense"><?= number_format($expense, 2, '.', ''); ?></span></h4>
               </div>
             </div>
           </div>
@@ -226,7 +226,7 @@ try {
               </div>
               <div class="ms-3">
                 <h6 class="text-secondary mb-1">Upcoming Rides</h6>
-                <h4 class="mb-0"><?= $pending_rides; ?></h4>
+                <h4 class="mb-0" id="pending-rides"><?= $pending_rides; ?></h4>
               </div>
             </div>
           </div>
@@ -241,12 +241,13 @@ try {
                     <p class="mt-2 mb-0" style='color: #f37a20;'>This Month</p>
                 </div>
                 <div class="d-flex gap-3 mt-3 mt-md-0">
-                    <input type="text" class="form-control rounded-pill bg-light border-0" 
-                           placeholder="Search" style="max-width: 200px;">
-                    <select class="form-select rounded-pill bg-light border-0" style="max-width: 170px;">
-                        <option>Sort by: Newest</option>
-                        <option>Sort by: Oldest</option>
-                    </select>
+                    <input
+                      type="text"
+                      id="ridesSearch"
+                      class="form-control rounded-pill bg-light border-0"
+                      placeholder="Search"
+                      style="max-width: 220px;"
+                    >
                 </div>
             </div>
 
@@ -296,18 +297,6 @@ if ($status == 'In Progress') {
                 </table>
             </div>
 
-            <div class="d-flex justify-content-between align-items-center mt-4 p-2">
-              <span class="text-secondary" id="pagination-info">Showing 1-9 of 13 entries</span>
-              <div class="d-flex gap-2">
-                  <button class="btn btn-outline-secondary rounded-circle" id="prev-page" disabled>
-                      <i class="bi bi-chevron-left"></i>
-                  </button>
-                  <button class="btn btn-outline-secondary rounded-circle" id="next-page">
-                      <i class="bi bi-chevron-right"></i>
-                  </button>
-              </div>
-          </div>
-
         </div>
     </div>
 </div>
@@ -320,6 +309,15 @@ if ($status == 'In Progress') {
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script src="js/script.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  window.RIDES_REALTIME_CONFIG = {
+    cid: <?= json_encode($cid); ?>,
+    supabaseUrl: <?= json_encode(SUPABASE_URL); ?>,
+    supabaseAnonKey: <?= json_encode(SUPABASE_ANON_KEY); ?>,
+  };
+</script>
+<script src="js/realtime-rides.js"></script>
     <script>
       document
         .getElementById('sidebarToggle')
@@ -354,84 +352,15 @@ if ($status == 'In Progress') {
       function toggleSidebar() {
         console.log('Sidebar toggle functionality would go here');
       }
-      
-    
 
-const elements = {
-    tbody: document.getElementById('rides-body'),
-    paginationInfo: document.getElementById('pagination-info'),
-    prevBtn: document.getElementById('prev-page'),
-    nextBtn: document.getElementById('next-page')
-};
-
-const statusColors = {
-    'Pending': '#ff0000',
-    'In Progress': '#ff0000',
-    'Completed': '#28a745'
-};
-
-const allRides = [];
-const config = {
-    currentPage: 1,
-    entriesPerPage: 9,
-    totalEntries: allRides.length,
-    totalPages: Math.max(1, Math.ceil(allRides.length / 9))
-};
-
-function renderTable() {
-    const start = (config.currentPage - 1) * config.entriesPerPage;
-    const end = start + config.entriesPerPage;
-    const pageData = allRides.slice(start, end);
-
-    elements.tbody.innerHTML = pageData.map(ride => `
-        <tr style='border-bottom: 1px solid #e5e5e5;'>
-            <td class='py-3' style='font-size: 14px;'>${ride.employee}</td>
-            <td class='py-3' style='font-size: 14px;'>${ride.pickup}</td>
-            <td class='py-3' style='font-size: 14px;'>${ride.dropoff}</td>
-            <td class='py-3' style='font-size: 14px;'>${ride.date}</td>
-            <td class='py-3' style='font-size: 14px;'>${ride.cab}</td>
-            <td class='py-3' style='font-size: 14px;'>${ride.cost}</td>
-            <td class='py-3' style='font-size: 14px;'>
-                <span style="color: ${statusColors[ride.status] || '#000'}; font-weight: 500;">
-                    ${ride.status}
-                </span>
-            </td>
-        </tr>
-    `).join('');
-}
-
-function updatePagination() {
-    const start = (config.currentPage - 1) * config.entriesPerPage + 1;
-    const end = Math.min(config.currentPage * config.entriesPerPage, config.totalEntries);
-  
-    elements.paginationInfo.textContent = 
-        `Showing ${start}-${end} of ${config.totalEntries} entries`;
-    
-    elements.prevBtn.disabled = config.currentPage === 1;
-    elements.nextBtn.disabled = config.currentPage === config.totalPages;
-}
-
-function handlePrevPage() {
-    if (config.currentPage > 1) {
-        config.currentPage--;
-        renderTable();
-        updatePagination();
-    }
-}
-
-function handleNextPage() {
-    if (config.currentPage < config.totalPages) {
-        config.currentPage++;
-        renderTable();
-        updatePagination();
-    }
-}
-
-elements.prevBtn.addEventListener('click', handlePrevPage);
-elements.nextBtn.addEventListener('click', handleNextPage);
-
-renderTable();
-updatePagination();
+      // Temporary debug logs for Supabase rides fetch.
+      console.log('[Home Debug] Session user:', <?= json_encode($user); ?>);
+      console.log('[Home Debug] Session CID:', <?= json_encode($cid); ?>);
+      console.log('[Home Debug] Rides count:', <?= json_encode(count($rides)); ?>);
+      console.log('[Home Debug] First ride row:', <?= json_encode(!empty($rides) ? $rides[0] : null); ?>);
+      <?php if ($ridesFetchError !== ''): ?>
+      console.error('[Home Debug] Rides fetch error:', <?= json_encode($ridesFetchError); ?>);
+      <?php endif; ?>
     </script>
   </body>
 </html>

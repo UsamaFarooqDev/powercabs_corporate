@@ -163,7 +163,7 @@ try {
                         <th style='border-bottom: 1px solid #e5e5e5; color: #969696; font-size: 14px; font-weight: 500;'>Status</th>
                     </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="rides-body">
                     <?php foreach ($rides as $emp_data): ?>
                         <tr style='border-bottom: 1px solid #e5e5e5;'>
                             <td class='py-3' style='font-size: 14px;'><?= $emp_data['employee']; ?></td>
@@ -210,6 +210,15 @@ if ($status == 'In Progress') {
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script src="js/script.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  window.RIDES_REALTIME_CONFIG = {
+    cid: <?= json_encode($cid); ?>,
+    supabaseUrl: <?= json_encode(SUPABASE_URL); ?>,
+    supabaseAnonKey: <?= json_encode(SUPABASE_ANON_KEY); ?>,
+  };
+</script>
+<script src="js/realtime-rides.js"></script>
     <script>
       document
         .getElementById('sidebarToggle')

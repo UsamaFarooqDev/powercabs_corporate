@@ -1,20 +1,35 @@
 <?php
 session_start();
 require_once __DIR__ . '/auth/supabase.php';
-if (!isset($_SESSION['user'])) {
-    header("Location: login.php");
+if (!isset($_SESSION['user']) || empty($_SESSION['user']['cid'])) {
+    header('Location: login.php');
     exit;
 }
 $user = $_SESSION['user'];
-$cid = $user['cid'];
-$row = ['name' => '', 'email' => '', 'phone' => '', 'address' => ''];
+$row = [
+    'name' => trim((string)($user['name'] ?? '')),
+    'email' => trim((string)($user['email'] ?? '')),
+    'phone' => '',
+    'address' => '',
+];
 try {
     $supabase = new SupabaseClient(true);
-    $results = $supabase->select('corporate', ['CID' => $cid], '*', null, 1);
-    if (!empty($results)) {
-        $row = $results[0];
+    $dbRow = null;
+    foreach (corporate_row_filters_try($user) as $filter) {
+        $results = $supabase->select('corporate', $filter, '*', null, 1);
+        if (!empty($results)) {
+            $dbRow = $results[0];
+            break;
+        }
+    }
+    if ($dbRow !== null) {
+        $row['name'] = trim((string)($dbRow['name'] ?? $row['name']));
+        $row['email'] = trim((string)($dbRow['email'] ?? $row['email']));
+        $row['phone'] = trim((string)($dbRow['phone'] ?? $dbRow['Phone'] ?? ''));
+        $row['address'] = trim((string)($dbRow['address'] ?? $dbRow['Address'] ?? ''));
     }
 } catch (Throwable $e) {
+    error_log('profile.php corporate fetch: ' . $e->getMessage());
 }
 ?>
 <!DOCTYPE html>
@@ -22,7 +37,7 @@ try {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard</title>
+  <title>Profile</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
   <link rel="stylesheet" href="global.css" />
@@ -40,7 +55,7 @@ try {
       <div class="dropdown">
         <img src="assets/profile.svg" alt="Profile" class="rounded-circle profile-img" style="width: 50px; height: 50px; cursor: pointer" data-bs-toggle="dropdown" aria-expanded="false" />
         <ul class="dropdown-menu dropdown-menu-end">
-          <li><a class="dropdown-item" href="#">Profile</a></li>
+          <li><a class="dropdown-item" href="profile.php">Profile</a></li>
           <li><a class="dropdown-item" href="auth/logout.php">Logout</a></li>
         </ul>
       </div>
@@ -125,26 +140,25 @@ try {
         </div>
         <div class="modal-body">
           <form action="php/update_profile.php" method="POST">
-            <input type="hidden" name="cid" value="<?= htmlspecialchars($user['cid']); ?>" />
-
             <div class="mb-3">
               <label for="edit-name" class="form-label">Company Name</label>
-              <input type="text" class="form-control" id="edit-name" name="name" value="<?= htmlspecialchars($row['name']); ?>" required />
+              <input type="text" class="form-control" id="edit-name" name="name" value="<?= htmlspecialchars($row['name'] ?? ''); ?>" required />
             </div>
 
             <div class="mb-3">
-              <label for="edit-email" class="form-label">Email</label>
-              <input type="email" class="form-control" id="edit-email" name="email" value="<?= htmlspecialchars($row['email']); ?>" required />
+              <label class="form-label">Email</label>
+              <input type="text" class="form-control bg-light" value="<?= htmlspecialchars($row['email'] ?? ''); ?>" readonly disabled />
+              <div class="form-text">Email cannot be changed here. Contact support if you need a new login email.</div>
             </div>
 
             <div class="mb-3">
               <label for="edit-phone" class="form-label">Phone</label>
-              <input type="text" class="form-control" id="edit-phone" name="phone" value="<?= htmlspecialchars($row['phone']); ?>" required />
+              <input type="text" class="form-control" id="edit-phone" name="phone" value="<?= htmlspecialchars($row['phone'] ?? ''); ?>" required />
             </div>
 
             <div class="mb-3">
               <label for="edit-address" class="form-label">Address</label>
-              <input type="text" class="form-control" id="edit-address" name="address" value="<?= htmlspecialchars($row['address']); ?>" required />
+              <input type="text" class="form-control" id="edit-address" name="address" value="<?= htmlspecialchars($row['address'] ?? ''); ?>" />
             </div>
 
             <div class="d-flex justify-content-between mt-4">
@@ -167,8 +181,6 @@ try {
       </div>
       <div class="modal-body">
         <form id="changePasswordForm" action="php/change_password.php" method="POST">
-          <input type="hidden" name="cid" value="<?= htmlspecialchars($user['cid']); ?>" />
-
           <div class="mb-3">
             <label for="old-password" class="form-label">Old Password</label>
             <input type="password" class="form-control" id="old-password" name="old_password" required />
@@ -176,7 +188,8 @@ try {
 
           <div class="mb-3">
             <label for="new-password" class="form-label">New Password</label>
-            <input type="password" class="form-control" id="new-password" name="new_password" required />
+            <input type="password" class="form-control" id="new-password" name="new_password" required minlength="8" autocomplete="new-password" />
+            <div class="form-text">At least 8 characters.</div>
           </div>
 
           <div class="mb-3">
@@ -194,32 +207,7 @@ try {
   </div>
 </div>
 
-  <!-- Password Success Modal -->
-  <div class="modal fade" id="passwordSuccessModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content border-0" style="border-radius: 20px; padding: 60px;">
-        <div class="modal-body text-center">
-          <div class="mx-auto mb-3">
-            <img src="assets/success.svg" alt="success icon" class="rounded-circle" style="width: 50px; height: 50px; cursor: pointer" />
-          </div>
-          <h3 class="fw-bold mb-2">Request sent successfully.</h3>
-          <p class="text-muted mb-4">
-            Your request to update password has been successfully sent! Please check your email soon.
-          </p>
-          <div class="d-flex flex-wrap justify-content-center">
-            <button class="btn px-4" data-bs-dismiss="modal" style="border: 1px solid black;">Back to Dashboard</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    function submitPasswordRequest() {
-      window.location.href = 'php/change_password.php?cid=<?= urlencode($user['cid']) ?>';
-    }
-  </script>
 </body>
 </html>

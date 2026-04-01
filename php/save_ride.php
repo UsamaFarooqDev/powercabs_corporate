@@ -4,6 +4,45 @@ require_once __DIR__ . '/../auth/supabase.php';
 
 header('Content-Type: application/json');
 
+/**
+ * Turn Supabase/Postgres API errors into short, user-facing messages (no raw JSON).
+ */
+function mapSupabaseErrorToUserMessage(Throwable $e): string
+{
+    $msg = $e->getMessage();
+    $payload = null;
+    if (preg_match('/Supabase error \(\d+\):\s*(\{.*\})\s*$/s', $msg, $m)) {
+        $payload = json_decode($m[1], true);
+    }
+
+    if (is_array($payload)) {
+        $code = isset($payload['code']) ? (string) $payload['code'] : '';
+        $detail = isset($payload['details']) ? (string) $payload['details'] : '';
+        $pgMsg = isset($payload['message']) ? (string) $payload['message'] : '';
+
+        if ($code === '23505') {
+            if (stripos($detail, 'corporate_rides_pkey') !== false
+                || stripos($pgMsg, 'corporate_rides_pkey') !== false
+                || preg_match('/Key \(id\)=\(/', $detail)) {
+                return 'Your ride could not be booked: the booking ID sequence is out of sync with the database. Please try again once. If this keeps happening, your administrator needs to reset the auto-increment sequence for corporate rides.';
+            }
+            return 'Your ride could not be booked because it conflicts with an existing record. Please adjust your details and try again.';
+        }
+        if ($code === '23503') {
+            return 'Your ride could not be booked because a linked record is missing or invalid. Refresh the page and try again.';
+        }
+        if ($code === '23514') {
+            return 'Your ride could not be booked because some values failed validation. Check pickup time and other fields, then try again.';
+        }
+    }
+
+    if (stripos($msg, '"23505"') !== false || stripos($msg, 'duplicate key') !== false) {
+        return 'Your ride could not be booked because of a duplicate or conflict in the database. Please try again. If it continues, contact support.';
+    }
+
+    return 'We could not save your ride right now. Please try again in a moment. If the problem continues, contact support.';
+}
+
 // Check if user is logged in
 if (!isset($_SESSION['user'])) {
     echo json_encode(['success' => false, 'message' => 'User not logged in']);
@@ -20,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validate required fields
     $requiredFields = ['employee_id', 'employee_name', 'pickup', 'dropoff', 'carType', 'pickupTime', 'paymentSource', 'distance', 'eta', 'fare'];
     foreach ($requiredFields as $field) {
-        if (empty($data[$field])) {
+        if (!array_key_exists($field, $data) || $data[$field] === '' || $data[$field] === null) {
             echo json_encode(['success' => false, 'message' => "Missing or empty field: $field"]);
             exit;
         }
@@ -39,32 +78,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Other fields
     $status = 'Pending';
-    $vehicle_number = '';
-    $price = $fare;
-    $date = date('Y-m-d H:i:s');
+    $pickupTimeIso = date('Y-m-d H:i:s', strtotime($pickupTime));
 
     try {
     $supabase = new SupabaseClient(true);
-    $supabase->insert('corporate_rides', [
+    $insertPayload = [
         'company' => $companyname,
         'employee' => $employee,
         'employee_id' => $employee_id,
         'pickup' => $pickup,
         'destination' => $destination,
         'payment_source' => $paymentSource,
-        'pickupTime' => $pickupTime,
+        'pickupTime' => $pickupTimeIso,
         'carType' => $carType,
-        'price' => $price,
-        'vehicle_number' => $vehicle_number,
         'status' => $status,
         'cid' => $cid,
         'fare' => $fare,
         'eta' => $eta,
-        'distance' => $distance,
-        'date' => $date
-    ]);
+        'distance' => $distance
+    ];
+    $supabase->insert('corporate_rides', $insertPayload);
     // Compose WhatsApp message for Dispatcher
-    $message = "ðŸš• New Ride Request\n\n"
+    $message = "New Ride Request\n\n"
         . "Company: $companyname\n"
         . "Passenger: $employee (ID: $employee_id)\n"
         . "Pickup: $pickup\n"
@@ -116,7 +151,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     echo json_encode(['success' => true, 'message' => 'Ride booked successfully. Dispatcher notified via WhatsApp.']);
     } catch (Throwable $e) {
-      echo json_encode(['success' => false, 'message' => 'Error saving ride.']);
+      error_log('save_ride.php error: ' . $e->getMessage());
+      echo json_encode([
+        'success' => false,
+        'message' => mapSupabaseErrorToUserMessage($e),
+      ]);
     }
 } else {
     echo json_encode(['success' => false, 'message' => 'Invalid request method.']);

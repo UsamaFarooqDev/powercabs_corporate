@@ -97,3 +97,27 @@ function corporateRequireLogin() {
     return $_SESSION['user'];
 }
 
+/**
+ * Filter candidates for corporate row (id, email, then cid column name variants).
+ *
+ * @return array<int, array<string, mixed>>
+ */
+function corporate_row_filters_try(array $user): array {
+    $filters = [];
+    $uid = $user['id'] ?? null;
+    if ($uid !== null && $uid !== '') {
+        $filters[] = ['id' => $uid];
+    }
+    $email = trim((string)($user['email'] ?? ''));
+    if ($email !== '') {
+        $filters[] = ['email' => $email];
+    }
+    $cid = trim((string)($user['cid'] ?? ''));
+    if ($cid !== '') {
+        $filters[] = ['cid' => $cid];
+        $filters[] = ['CID' => $cid];
+        $filters[] = ['company_id' => $cid];
+    }
+    return $filters;
+}
+
