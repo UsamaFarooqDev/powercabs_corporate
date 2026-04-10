@@ -202,9 +202,12 @@ try {
               <div class="br-field mb-0">
                 <label class="br-label" for="carType">Car Type</label>
                 <select class="form-select" name="carType" id="carType">
-                  <option value="Business">Business</option>
                   <option value="Economy">Economy</option>
-                  <option value="Luxury">Luxury</option>
+                  <option value="Economy XL">Economy XL</option>
+                  <option value="Business">Business</option>
+                  <option value="Business Plus">Business Plus</option>
+                  <option value="Limousine">Limousine</option>
+                  <option value="Wheelchair accessible">Wheelchair Accessible</option>
                 </select>
               </div>
 

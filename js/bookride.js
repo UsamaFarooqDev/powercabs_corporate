@@ -4,6 +4,9 @@ let pickupAutocomplete, dropoffAutocomplete;
 let mapsReady = false;
 let pickupLatLng = null;
 let dropoffLatLng = null;
+/** Last successful route (mirrors pw_dispatcher/order.php — used to recalc fare when car type changes). */
+let currentDistanceKm = null;
+let currentDurationMin = null;
 
 const CORPORATE_RIDES_BC = 'powercab-corporate-rides';
 const CORPORATE_RIDES_LS = 'powercab_corporate_rides_refresh';
@@ -48,25 +51,43 @@ window.initBookRideGoogleMaps = function initBookRideGoogleMaps() {
   mapsReady = true;
 };
 
+/** Local YYYY-MM-DDTHH:mm for datetime-local (same wall clock as dispatcher date+time fields). */
+function formatDateTimeLocalValue(d) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function setDefaultPickupTime() {
   console.log('[RideScript] Setting default pickup time');
   const now = new Date();
   now.setMinutes(now.getMinutes() + 30);
-  const formattedDateTime = now.toISOString().slice(0, 16);
   const elem = document.getElementById('pickupTime');
   if (!elem) {
     console.error('[RideScript] #pickupTime not found');
     return;
   }
-  elem.value = formattedDateTime;
+  elem.value = formatDateTimeLocalValue(now);
+}
+
+/**
+ * Same rules as pw_dispatcher/order.php buildPickupDateTime (fare tier uses getHours() on this string).
+ */
+function buildPickupDateTimeForFare() {
+  const v = document.getElementById('pickupTime')?.value?.trim();
+  if (v) return v;
+  const now = new Date();
+  return now.toISOString().slice(0, 16);
 }
 
 function initMap() {
   console.log('[RideScript] initMap()');
-  const mapContainer = document.querySelector('.map-container');
   const mapFrame = document.getElementById('mapFrame');
+  // bookRide.php uses .br-map; older layout used .map-container
+  const mapContainer =
+    document.querySelector('.map-container') ||
+    (mapFrame && mapFrame.parentElement);
   if (!mapContainer || !mapFrame) {
-    console.error('[RideScript] map-container or mapFrame not found in DOM');
+    console.error('[RideScript] map wrapper or #mapFrame not found in DOM');
     return;
   }
 
@@ -84,7 +105,7 @@ function initMap() {
 
   map = new google.maps.Map(mapDiv, {
     center: { lat: 53.349805, lng: -6.26031 },
-    zoom: 13,
+    zoom: 12,
   });
   directionsService = new google.maps.DirectionsService();
   directionsRenderer = new google.maps.DirectionsRenderer({ map });
@@ -104,17 +125,16 @@ function initAutocomplete() {
     return;
   }
 
-  const acOptions = { fields: ['formatted_address', 'geometry', 'name'] };
-
-  pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput, acOptions);
-  dropoffAutocomplete = new google.maps.places.Autocomplete(dropoffInput, acOptions);
+  // Match pw_dispatcher/order.php (no Autocomplete options — same Places behavior)
+  pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput);
+  dropoffAutocomplete = new google.maps.places.Autocomplete(dropoffInput);
 
   pickupAutocomplete.addListener('place_changed', () => {
     const place = pickupAutocomplete.getPlace();
     if (place && place.formatted_address) {
       pickupInput.value = place.formatted_address;
     }
-    if (place && place.geometry && place.geometry.location) {
+    if (place && place.geometry) {
       pickupLatLng = place.geometry.location;
     }
     calculateDistanceAndFare();
@@ -124,7 +144,7 @@ function initAutocomplete() {
     if (place && place.formatted_address) {
       dropoffInput.value = place.formatted_address;
     }
-    if (place && place.geometry && place.geometry.location) {
+    if (place && place.geometry) {
       dropoffLatLng = place.geometry.location;
     }
     calculateDistanceAndFare();
@@ -140,8 +160,10 @@ function calculateDistanceAndFare() {
   const dropoff = document.getElementById('dropoff')?.value;
   const pickupTime = document.getElementById('pickupTime')?.value;
 
-  if (!pickup || !dropoff || !pickupTime) {
+  if (!pickup || !dropoff || !pickupTime?.trim()) {
     console.log('[RideScript] Missing one of pickup/dropoff/pickupTime');
+    currentDistanceKm = null;
+    currentDurationMin = null;
     return;
   }
 
@@ -156,11 +178,15 @@ function calculateDistanceAndFare() {
       console.log('[RideScript] Directions result OK');
       directionsRenderer.setDirections(result);
       const leg = result.routes[0].legs[0];
-      pickupLatLng = leg.start_location;
-      dropoffLatLng = leg.end_location;
       const distanceInKm = leg.distance.value / 1000;
       const durationInMin = Math.round(leg.duration.value / 60);
-      const fareAmount = calculateFare(distanceInKm, pickupTime);
+      currentDistanceKm = distanceInKm;
+      currentDurationMin = durationInMin;
+      const pickupTimeStr = buildPickupDateTimeForFare();
+      const carType = document.getElementById('carType')?.value || 'Economy';
+      const fareAmount = calculateFare(distanceInKm, durationInMin, pickupTimeStr, carType);
+      pickupLatLng = leg.start_location;
+      dropoffLatLng = leg.end_location;
 
       const summaryBar = document.getElementById('rideSummaryBar');
       const summaryFare = document.getElementById('summaryFare');
@@ -178,26 +204,68 @@ function calculateDistanceAndFare() {
       summaryBar.classList.remove('d-none');
     } else {
       console.error('[RideScript] DirectionsService failed:', status);
+      currentDistanceKm = null;
+      currentDurationMin = null;
     }
   });
 }
 
-function calculateFare(distanceInKm, pickupTimeStr) {
-  console.log('[RideScript] calculateFare() with', distanceInKm, pickupTimeStr);
+/**
+ * Copied from pw_dispatcher/order.php — keep in sync manually if pricing changes.
+ */
+function calculateFare(distanceKm, durationMin, pickupTimeStr, rideType) {
   const pickupDate = new Date(pickupTimeStr);
   const hour = pickupDate.getHours();
-
-  let baseFare, ratePerKm;
-
+  const initialFare = 3.0;
+  let baseFare, ratePerKm, ratePerMinute;
   if (hour >= 8 && hour < 20) {
     baseFare = 4.4;
     ratePerKm = 1.32;
+    ratePerMinute = 0.2;
   } else {
     baseFare = 5.4;
     ratePerKm = 1.81;
+    ratePerMinute = 0.3;
   }
+  const rawFare =
+    initialFare +
+    baseFare +
+    distanceKm * ratePerKm +
+    (durationMin || 0) * ratePerMinute;
+  const multipliers = {
+    'Economy': 1.0,
+    'Economy XL': 1.2,
+    'Business': 1.0,
+    'Business Plus': 1.2,
+    'Limousine': 2.0,
+    'Wheelchair accessible': 1.1,
+    'Wheelchair Taxi': 1.1,
+    'Pets Taxi': 1.15,
+    'Courier / Parcel': 0.9,
+  };
+  const multiplier = multipliers[rideType] ?? 1.0;
+  return Math.round(rawFare * multiplier * 100) / 100;
+}
 
-  return baseFare + ratePerKm * distanceInKm;
+function recalculateFareForCurrentRoute() {
+  if (currentDistanceKm == null || currentDurationMin == null) {
+    return;
+  }
+  const pickupTimeStr = document.getElementById('pickupTime')?.value?.trim();
+  if (!pickupTimeStr) {
+    return;
+  }
+  const carType = document.getElementById('carType')?.value || 'Economy';
+  const fareAmount = calculateFare(
+    currentDistanceKm,
+    currentDurationMin,
+    pickupTimeStr,
+    carType
+  );
+  const summaryFare = document.getElementById('summaryFare');
+  if (summaryFare) {
+    summaryFare.textContent = fareAmount.toFixed(2);
+  }
 }
 
 function setupFormListeners() {
@@ -205,6 +273,7 @@ function setupFormListeners() {
   const pickupInput = document.getElementById('pickup');
   const dropoffInput = document.getElementById('dropoff');
   const pickupTimeInput = document.getElementById('pickupTime');
+  const carTypeSelect = document.getElementById('carType');
   const employeeSelect = document.getElementById('employee');
   const bookRideBtn = document.getElementById('bookRideBtn');
 
@@ -216,6 +285,12 @@ function setupFormListeners() {
 
   if (pickupTimeInput) {
     pickupTimeInput.addEventListener('change', calculateDistanceAndFare);
+  }
+
+  if (carTypeSelect) {
+    carTypeSelect.addEventListener('change', () => {
+      recalculateFareForCurrentRoute();
+    });
   }
 
   if (employeeSelect) {
