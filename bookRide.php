@@ -5,12 +5,13 @@ if (!isset($_SESSION['user'])) {
   header("Location: login.php");
   exit;
 }
-$user = $_SESSION['user'];
-$cid = $user['cid'];
-$cname = $user['name'];
+$user      = $_SESSION['user'];
+$cid       = $user['cid'];
+$cname     = $user['name'];
+$pageTitle = 'Book a Ride';
 $employees = [];
 try {
-  $supabase = new SupabaseClient(true);
+  $supabase  = new SupabaseClient(true);
   $employees = $supabase->select('corporate_employees', ['cid' => $cid], 'id,name', 'name.asc');
 } catch (Throwable $e) {
   $employees = [];
@@ -18,268 +19,276 @@ try {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Book Ride</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
-    <link rel="stylesheet" href="global.css" />
-    <style>
-    /* Custom Styles */
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f8f9fa;
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Book a Ride — PowerCabs</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+  <link href="global.css" rel="stylesheet"/>
+
+  <style>
+    body { background: #f5f7fa; }
+
+    .br-card {
+      border-radius: 16px;
+      border: 1px solid #eeeff2;
     }
 
-    .sidebar {
-      height: 100vh;
-      background-color: #343a40;
-      color: #fff;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 250px;
-      padding-top: 70px;
-      overflow-y: auto;
-    }
-
-    .sidebar a {
-      color: #fff;
-      text-decoration: none;
-      display: block;
-      padding: 15px 20px;
-      transition: background-color 0.3s;
-    }
-
-    .sidebar a:hover {
-      background-color: #495057;
-    }
-
-    .sidebar a.active {
-      background-color: #f37a20;
-      border-right: 4px solid #f37a20;
-    }
-
-    .main-content {
-      margin-left: 250px;
-      padding: 20px;
-    }
-
-    .header {
-      background-color: #ffffff;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      position: fixed;
-      top: 0;
-      left: 250px;
-      right: 0;
-      z-index: 1000;
-      padding: 15px 20px;
-    }
-
-    .header h4 {
-      margin: 0;
+    .br-section-label {
+      font-size: .68rem;
       font-weight: 600;
-      color: #343a40;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: #9ca3af;
     }
 
-    .card-stats {
-      background-color: #fff;
+    .br-field { display: flex; align-items: center; gap: .85rem; }
+
+    .br-label {
+      flex-shrink: 0;
+      width: 130px;
+      font-size: .88rem;
+      font-weight: 500;
+      color: #6b7280;
+      line-height: 1.3;
+    }
+
+    .br-card .form-control,
+    .br-card .form-select {
+      font-size: .9125rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: .42rem .7rem;
+      background: #fff;
+      color: #111827;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .br-card .form-control:focus,
+    .br-card .form-select:focus {
+      border-color: #f37a20;
+      box-shadow: 0 0 0 3px rgba(243,122,32,.12);
+    }
+    .br-card .form-control::placeholder { color: #d1d5db; }
+
+    .br-divider {
+      border: none;
+      border-top: 1px solid #f3f4f6;
+      margin: .85rem 0;
+    }
+
+    #rideSummaryBar {
       border-radius: 10px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      border: 1px solid #fde68a;
+      background: #fffbeb;
+      color: #92400e;
+      font-size: .98rem;
+      padding: .65rem 1rem;
     }
+    #rideSummaryBar strong { color: #78350f; }
 
-    .card-stats .card-body {
-      display: flex;
-      align-items: center;
+    .btn-book {
+      background: #f37a20;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: .9525rem;
+      font-weight: 600;
+      padding: .48rem 1.2rem;
+      transition: background .15s, box-shadow .15s;
     }
+    .btn-book:hover { background: #e06910; color: #fff; box-shadow: 0 4px 14px rgba(243,122,32,.35); }
 
-    .card-stats .icon-box {
-      width: 65px;
-      height: 65px;
-      background-color: #e8e8e8;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      margin-right: 15px;
-    }
-
-    .card-stats .icon-box i {
+    .btn-past {
+      font-size: .8rem;
+      font-weight: 600;
       color: #f37a20;
-      font-size: 28px;
+      text-decoration: none;
     }
+    .btn-past:hover { text-decoration: underline; color: #e06910; }
 
-    .table-responsive {
-      border-radius: 10px;
+    .br-map {
+      border-radius: 14px;
       overflow: hidden;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      border: 1px solid #eeeff2;
+      height: 100%;
+      min-height: 420px;
     }
+    .br-map iframe { width: 100%; height: 100%; display: block; border: 0; }
 
-    .table thead th {
-      color: #969696;
-      font-size: 14px;
-      font-weight: 500;
-      border-bottom: 1px solid #e5e5e5;
+    .success-modal .modal-content {
+      border-radius: 16px;
+      border: 1px solid #eeeff2;
     }
+    .success-modal .modal-body { padding: 2.5rem; }
 
-    .table tbody td {
-      font-size: 14px;
-      font-weight: 500;
-      vertical-align: middle;
+    .success-icon {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: #f0fdf4;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1rem;
     }
+    .success-icon i { color: #16a34a; font-size: 1.5rem; }
 
-    .status-completed {
-      color: green;
-    }
+    .success-modal h5 { font-size: .95rem; font-weight: 700; color: #111827; }
+    .success-modal p  { font-size: .8rem; color: #6b7280; }
 
-    .status-pending {
-      color: red;
+    .btn-modal-primary {
+      background: #f37a20; color: #fff; border: none;
+      border-radius: 8px; font-size: .8rem; font-weight: 600;
+      padding: .45rem 1rem;
+      transition: background .15s;
     }
+    .btn-modal-primary:hover { background: #e06910; color: #fff; }
 
-    /* Places Autocomplete dropdown above fixed header / layout (same issue as dispatcher order form) */
-    .pac-container {
-      z-index: 2000 !important;
+    .btn-modal-secondary {
+      border: 1px solid #e5e7eb; color: #374151;
+      border-radius: 8px; font-size: .8rem; font-weight: 500;
+      padding: .45rem 1rem; background: #fff;
+      transition: background .15s;
     }
+    .btn-modal-secondary:hover { background: #f9fafb; }
   </style>
-  </head>
-  <body>
-    <!-- Navbar -->
-    <!--<nav class="navbar navbar-expand-lg navbar-light bg-white d-flex align-items-center justify-content-between p-3 " style="padding-left:10vw">-->
-    <!--  <div class="d-flex align-items-center">-->
-    <!--    <button class="navbar-toggler me-2 d-md-none btn btn-light border-none" style="padding: 4px;" type="button" id="sidebarToggle">-->
-    <!--      <span class="navbar-toggler-icon"></span>-->
-    <!--    </button>-->
-    <!--    <h1 class="navbar-title m-0 fw-bold" id="pageTitle">Book a Ride</h1>-->
-    <!--  </div>-->
-    <!--  <div class="d-flex align-items-center">-->
-    <!--    <div class="dropdown" id="avatarDropdown">-->
-    <!--      <img src="assets/profile.svg" alt="Profile" class="rounded-circle profile-img" style="width: 50px; height: 50px; cursor: pointer"/>-->
-    <!--    </div>-->
-    <!--  </div>-->
-    <!--</nav>-->
+</head>
+<body>
 
-    <!-- Sidebar -->
-    <div class="sidebar text-white p-3">
-      <?php @require('modules/sidebar.php'); ?>
+  <?php require 'modules/navbar.php'; ?>
+
+  <main class="main-content p-5">
+    <div class="row g-4 align-items-stretch flex-column-reverse flex-lg-row">
+
+      <div class="col-lg-6">
+        <div class="card br-card border-0 shadow-sm h-100">
+          <div class="card-body p-5">
+
+            <p class="br-section-label mb-3">Ride details</p>
+
+            <form id="rideForm">
+
+              <div class="br-field mb-0">
+                <label class="br-label" for="employee">Passenger</label>
+                <select class="form-select" name="employee" id="employee">
+                  <option value="" disabled selected>Select employee</option>
+                  <?php foreach ($employees as $row): ?>
+                    <option value="<?= htmlspecialchars($row['id'] ?? '') ?>">
+                      <?= htmlspecialchars($row['name'] ?? '') ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+              <input type="hidden" id="employeeName" name="employeeName"/>
+
+              <hr class="br-divider">
+
+              <div class="br-field mb-0">
+                <label class="br-label" for="pickup">Pickup</label>
+                <input type="text" class="form-control" name="pickup" id="pickup"
+                       placeholder="Enter pickup location" autocomplete="off"/>
+                <input type="hidden" name="companyName" id="companyName" value="<?= htmlspecialchars($cname) ?>"/>
+              </div>
+
+              <hr class="br-divider">
+
+              <div class="br-field mb-0">
+                <label class="br-label" for="dropoff">Drop Off</label>
+                <input type="text" class="form-control" name="dropoff" id="dropoff"
+                       placeholder="Enter dropoff location" autocomplete="off"/>
+              </div>
+
+              <hr class="br-divider">
+
+              <div class="br-field mb-0">
+                <label class="br-label" for="carType">Car Type</label>
+                <select class="form-select" name="carType" id="carType">
+                  <option value="Business">Business</option>
+                  <option value="Economy">Economy</option>
+                  <option value="Luxury">Luxury</option>
+                </select>
+              </div>
+
+              <hr class="br-divider">
+
+              <div class="br-field mb-0">
+                <label class="br-label" for="pickupTime">Date &amp; Time</label>
+                <input type="datetime-local" class="form-control" name="pickupTime" id="pickupTime"/>
+              </div>
+
+              <hr class="br-divider">
+
+              <div class="br-field mb-0">
+                <label class="br-label" for="paymentSource">Payment</label>
+                <select class="form-select" name="paymentSource" id="paymentSource">
+                  <option value="Cash">Cash</option>
+                  <option value="Bill to company">Bill to company</option>
+                </select>
+              </div>
+
+              <div class="alert d-none mt-4 mb-0" id="rideSummaryBar">
+                <div class="d-flex justify-content-between flex-wrap gap-2">
+                  <div><strong>Est. Fare:</strong> €<span id="summaryFare">0</span></div>
+                  <div><strong>Est. Time:</strong> <span id="summaryDuration">0</span> min</div>
+                  <div><strong>Distance:</strong> <span id="summaryDistance">0</span> km</div>
+                </div>
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center mt-4">
+                <a href="home.php" class="btn-past">
+                  <i class="bi bi-clock-history me-1"></i>View Past Rides
+                </a>
+                <button type="button" class="btn-book" id="bookRideBtn">
+                  Book Ride <i class="bi bi-arrow-right ms-1"></i>
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="br-map shadow-sm">
+          <iframe id="mapFrame" title="Map"
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2381.681797268639!2d-6.260309684349727!3d53.3498051799791!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x48670e9d6c92d7c3%3A0x2776a88dddc5ea5f!2sDublin!5e0!3m2!1sen!2sie!4v1679245534743!5m2!1sen!2sie"
+            allowfullscreen loading="lazy">
+          </iframe>
+        </div>
+      </div>
+
     </div>
-<div class="header">
-    <h4>Book Ride</h4>
+  </main>
+
+  <div class="modal fade success-modal" id="successModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:520px">
+      <div class="modal-content">
+        <div class="modal-body text-center">
+
+          <div class="success-icon">
+            <i class="bi bi-check-lg"></i>
+          </div>
+
+          <h5 class="mb-2">Ride Requested Successfully</h5>
+          <p class="mb-0">Your ride has been submitted. Check your email shortly for confirmation and driver details.</p>
+
+          <div class="d-flex justify-content-center gap-2 mt-4">
+            <button type="button" class="btn-modal-primary" data-bs-dismiss="modal">
+              Book Another
+            </button>
+            <a href="home.php" class="btn-modal-secondary text-decoration-none">
+              Back to Dashboard
+            </a>
+          </div>
+
+        </div>
+      </div>
+    </div>
   </div>
 
-    <div class="main-content p-4" style="background: #f5f7fa">
-      <div class="card-body">
-        <div class="p-2 p-sm-5">
-          <div class="row mb-4 flex-column-reverse flex-lg-row justify-content-center align-items-center">
-            
-            <!-- Form Column -->
-            <div class="col-lg-6 col-md-12">
-              <form id="rideForm">
-                <!-- Passenger -->
-                <div class="mb-4 d-flex align-items-center">
-                  <label class="form-label me-2" style="min-width: 130px; color: #969696">Passenger</label>
-                  <select class="form-select" name="employee" id="employee" style="flex:1">
-                    <option value="" disabled selected>Select employee</option>
-                    <?php foreach ($employees as $row): ?>
-                      <option value="<?= htmlspecialchars($row['id'] ?? ''); ?>"><?= htmlspecialchars($row['name'] ?? ''); ?></option>
-                    <?php endforeach; ?>
-                  </select>
-                </div>
-                <input type="hidden" id="employeeName" name="employeeName" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/bookride.js"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB9ea0A-mjnD5iHfT9X8Dn5YYH4_KZopLI&libraries=places&callback=initBookRideGoogleMaps" async defer></script>
 
-                <!-- Pickup -->
-                <div class="mb-4 d-flex align-items-center">
-                  <label class="form-label me-2" style="min-width: 130px; color: #969696">Pickup</label>
-                  <input type="text" class="form-control" name="pickup" id="pickup" placeholder="Enter pickup location" autocomplete="off"/>
-                  <input type="hidden" name="companyName" id="companyName" value="<?php echo $cname;?>"/>
-                </div>
-
-                <!-- Dropoff -->
-                <div class="mb-4 d-flex align-items-center">
-                  <label class="form-label me-2" style="min-width: 130px; color: #969696">Drop Off</label>
-                  <input type="text" class="form-control" name="dropoff" id="dropoff" placeholder="Enter dropoff location" autocomplete="off"/>
-                </div>
-
-                <!-- Car Type -->
-                <div class="mb-4 d-flex align-items-center">
-                  <label class="form-label me-2" style="min-width: 130px; color: #969696">Car Type</label>
-                  <select class="form-select" name="carType" id="carType">
-                    <option value="Business">Business</option>
-                    <option value="Economy">Economy</option>
-                    <option value="Luxury">Luxury</option>
-                  </select>
-                </div>
-
-                <!-- Pickup Time -->
-                <div class="mb-4 d-flex align-items-center">
-                  <label class="form-label me-2" style="min-width: 130px; color: #969696">Pickup Date & Time</label>
-                  <input type="datetime-local" class="form-control" name="pickupTime" id="pickupTime"/>
-                </div>
-
-                <!-- Payment -->
-                <div class="mb-4 d-flex align-items-center">
-                  <label class="form-label me-2" style="min-width: 130px; color: #969696">Payment</label>
-                  <select class="form-select" name="paymentSource" id="paymentSource">
-                    <option value="Cash">Cash</option>
-                    <option value="Bill to company">Bill to company</option>
-                  </select>
-                </div>
-
-                <div class="alert alert-warning mb-3 d-none" id="rideSummaryBar">
-                  <div class="d-flex justify-content-between flex-wrap gap-2">
-                    <div><strong>Estimated Fare:</strong> €<span id="summaryFare">0</span></div>
-                    <div><strong>Estimated Time:</strong> <span id="summaryDuration">0</span> min</div>
-                    <div><strong>Distance:</strong> <span id="summaryDistance">0</span> km</div>
-                  </div>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="d-flex justify-content-between align-items-center p-3">
-                  <a href="home.php" style="color:#f37a20; font-weight:700; text-decoration:none;">View Past Rides</a>
-                  <button type="button" class="btn" style="color:#fff; background:#f37a20" id="bookRideBtn">
-                    Book Ride Now
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            <!-- Map Column -->
-            <div class="col-lg-6 col-md-12 mb-3 p-4">
-              <div class="map-container" style="height: 450px; width: 100%">
-                <iframe id="mapFrame" title="Google Map"
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2381.681797268639!2d-6.260309684349727!3d53.3498051799791!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x48670e9d6c92d7c3%3A0x2776a88dddc5ea5f!2sDublin!5e0!3m2!1sen!2sie!4v1679245534743!5m2!1sen!2sie"
-                  style="border:0; height:100%; width:100%" allowfullscreen="" loading="lazy">
-                </iframe>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Success Modal -->
-        <div class="modal fade w-100 h-100" id="successModal" tabindex="-1" aria-hidden="true">
-          <div class="modal-dialog modal-dialog-centered" style="max-width:680px;">
-            <div class="modal-content">
-              <div class="modal-body text-center p-5">
-                <img src="assets/success.svg" alt="success" style="width:50px; height:50px;"/>
-                <h3 class="mt-3">The request has been sent Successfully.</h3>
-                <p>Your ride request has been successfully sent! Please check your email soon for further details.</p>
-                <div class="d-flex justify-content-center gap-3 mt-4">
-                  <button type="button" class="btn" style="background:#f37a20; color:#fff" data-bs-dismiss="modal">Book Another Ride</button>
-                  <a class="btn" href="home.php" style="border:1px solid black">Back to Dashboard</a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </main>
-
-    <!-- Scripts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/bookride.js"></script>
-    <!-- Same pattern as pw_dispatcher/order.php: callback runs after Places API is ready (autocomplete suggestions work) -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB9ea0A-mjnD5iHfT9X8Dn5YYH4_KZopLI&libraries=places&callback=initBookRideGoogleMaps" async defer></script>
-  </body>
+</body>
 </html>

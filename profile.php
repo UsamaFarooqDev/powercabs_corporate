@@ -6,6 +6,7 @@ if (!isset($_SESSION['user']) || empty($_SESSION['user']['cid'])) {
     exit;
 }
 $user = $_SESSION['user'];
+$pageTitle = 'Profile';
 $row = [
     'name' => trim((string)($user['name'] ?? '')),
     'email' => trim((string)($user['email'] ?? '')),
@@ -43,41 +44,12 @@ try {
   <link rel="stylesheet" href="global.css" />
 </head>
 <body>
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-light bg-white d-flex align-items-center justify-content-between p-3">
-    <div class="d-flex align-items-center">
-      <button class="navbar-toggler me-2 btn btn-light border-none" type="button" id="sidebarToggle">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <h1 class="navbar-title m-0 fw-bold ms-lg-2" id="pageTitle">Profile</h1>
-    </div>
-    <div class="d-flex align-items-center">
-      <div class="dropdown">
-        <img src="assets/profile.svg" alt="Profile" class="rounded-circle profile-img" style="width: 50px; height: 50px; cursor: pointer" data-bs-toggle="dropdown" aria-expanded="false" />
-        <ul class="dropdown-menu dropdown-menu-end">
-          <li><a class="dropdown-item" href="profile.php">Profile</a></li>
-          <li><a class="dropdown-item" href="auth/logout.php">Logout</a></li>
-        </ul>
-      </div>
-    </div>
-  </nav>
-
-  <!-- Sidebar -->
-  <div class="sidebar text-white p-3">
-    <?php @require('modules/sidebar.php'); ?>
-  </div>
+  <?php require 'modules/navbar.php'; ?>
 
   <!-- Main Content -->
   <main class="main-content p-4" style="background: #f5f7fa">
     <div class="card shadow border-0" style="border-radius: 25px;">
       <div class="card-body">
-
-        <!-- Success/Error Messages -->
-        <?php if (isset($_SESSION['success'])): ?>
-          <div class="alert alert-success"><?= $_SESSION['success']; unset($_SESSION['success']); ?></div>
-        <?php elseif (isset($_SESSION['error'])): ?>
-          <div class="alert alert-danger"><?= $_SESSION['error']; unset($_SESSION['error']); ?></div>
-        <?php endif; ?>
 
         <!-- Company Info -->
         <div class="d-flex justify-content-between align-items-center flex-wrap px-5 py-3">

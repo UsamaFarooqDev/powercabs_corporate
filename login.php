@@ -9,6 +9,7 @@ session_start();
     <title>Corporate Login</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="global.css" />
 </head>
 <body>
@@ -21,8 +22,6 @@ session_start();
                     </div>
                     <h2 class="mb-3" style="font-size: 36px; font-weight: 700">Corporate Sign in</h2>
                     <p class="mb-4 text-muted">Please login to continue to your corporate account.</p>
-
-                    <div id="errorAlert" class="alert alert-danger d-none"></div>
 
                     <form id="loginForm" method="POST" novalidate>
                         <div class="form-group mb-3">
@@ -55,7 +54,38 @@ session_start();
         </div>
     </div>
 
+    <!-- Toast Container -->
+    <div id="toastContainer" aria-live="polite" aria-atomic="true"
+         style="position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;"></div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    function showToast(message, type) {
+      type = type || 'error';
+      const bg = type === 'success' ? '#28a745' : '#dc3545';
+      const icon = type === 'success'
+        ? '<i class="bi bi-check-circle-fill me-2"></i>'
+        : '<i class="bi bi-x-circle-fill me-2"></i>';
+      const id = 'toast-' + Date.now();
+      const html = `
+        <div id="${id}" class="toast align-items-center border-0 mb-2 show"
+             role="alert" aria-live="assertive" aria-atomic="true"
+             style="background:${bg}; color:#fff; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+          <div class="d-flex">
+            <div class="toast-body d-flex align-items-center" style="font-size:14px; font-weight:500;">
+              ${icon}${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        </div>`;
+      const container = document.getElementById('toastContainer');
+      container.insertAdjacentHTML('beforeend', html);
+      const toastEl = document.getElementById(id);
+      const bsToast = new bootstrap.Toast(toastEl, { delay: 4000 });
+      bsToast.show();
+      toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+    }
+    </script>
     <script>
         function togglePasswordVisibility(inputId) {
             const passwordInput = document.getElementById(inputId);
@@ -85,9 +115,6 @@ session_start();
 
         document.getElementById('loginForm').addEventListener('submit', async function (e) {
             e.preventDefault();
-            const errorAlert = document.getElementById('errorAlert');
-            errorAlert.classList.add('d-none');
-
             const formData = new FormData(this);
             try {
                 const resp = await fetch('auth/login.php', { method: 'POST', body: formData });
@@ -95,12 +122,10 @@ session_start();
                 if (json.success) {
                     window.location.href = 'home.php';
                 } else {
-                    errorAlert.textContent = json.message || 'Invalid credentials.';
-                    errorAlert.classList.remove('d-none');
+                    showToast(json.message || 'Invalid credentials.', 'error');
                 }
             } catch (err) {
-                errorAlert.textContent = 'Network error, please try again.';
-                errorAlert.classList.remove('d-none');
+                showToast('Network error, please try again.', 'error');
             }
         });
     </script>

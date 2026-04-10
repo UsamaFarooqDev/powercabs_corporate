@@ -7,6 +7,7 @@ if (!isset($_SESSION['user'])) {
 }
 $user = $_SESSION['user'];
 $cid = $user['cid'];
+$pageTitle = 'Ride History';
 $rides = [];
 try {
   $supabase = new SupabaseClient(true);
@@ -36,79 +37,7 @@ try {
   </head>
   <body>
 
-    <nav
-      class="navbar navbar-expand-lg navbar-light bg-white d-flex align-items-center justify-content-between p-3"
-    >
-      <div class="d-flex align-items-center">
-        <button
-          class="navbar-toggler me-2 d-md-none btn btn-light border-none"
-          style="padding: 4px; margin-left: 0px"
-          type="button"
-          id="sidebarToggle"
-        >
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <h1 class="navbar-title m-0 fw-bold ms-lg-230" id="pageTitle">
-          Ride History
-        </h1>
-      </div>
-
-      <div class="d-flex align-items-center">
-        <!-- <div class="me-4 d-none d-lg-inline-block">
-          <input
-            type="text"
-            placeholder="Search for something"
-            class="form-control"
-            style="
-              border-radius: 50px;
-              height: 50px;
-              width: 200px;
-              background: #f2f6fd;
-              border: none;
-              padding: 0 20px;
-              font-size: 0.9rem;
-              color: #333;
-            "
-          />
-        </div> -->
-
-        <div class="d-flex align-items-center ms-3">
-          <!-- <button
-            class="btn rounded-circle d-none d-lg-inline-block me-4"
-            style="width: 50px; height: 50px; background: #f2f6fd"
-          >
-            <i
-              class="bi bi-gear-fill"
-              style="color: #969696; font-size: 1.45rem"
-            ></i>
-          </button>
-          <button
-            class="btn rounded-circle d-none d-lg-inline-block me-4"
-            style="width: 50px; height: 50px; background: #f2f6fd"
-          >
-            <i
-              class="bi bi-bell-fill"
-              style="color: #f37a20; font-size: 1.45rem"
-            ></i>
-          </button> -->
-
-          <div class="dropdown" id="avatarDropdown">
-            <img
-              src="assets/profile.svg"
-              alt="Profile"
-              class="rounded-circle profile-img"
-              style="width: 50px; height: 50px; cursor: pointer"
-            />
-          </div>
-        </div>
-      </div>
-    </nav>
-
-    <div class="sidebar text-white p-3">
-    <?php 
-        @require('modules/sidebar.php');
-      ?>
-    </div>
+    <?php require 'modules/navbar.php'; ?>
 
     <main class="main-content p-4" style="background: #f5f7fa">
       <div class="card shadow border-0" style='border-radius: 25px;'>
@@ -236,20 +165,6 @@ if ($status == 'In Progress') {
           sidebar.classList.remove('active');
         }
       });
-      function updatePageTitle() {
-        const routeTitles = {
-          '/dashboard': 'Dashboard',
-          '/employee': 'Employee Directory',
-          '/ride-history': 'Ride History',
-          '/book-ride': 'Book a Ride',
-          '/promotion': 'Promotions & Coupon',
-          '/profile': 'Profile',
-        };
-        const path = window.location.pathname;
-        document.getElementById('pageTitle').textContent =
-          routeTitles[path] || 'Dashboard';
-      }
-
       function toggleSidebar() {
         console.log('Sidebar toggle functionality would go here');
       }

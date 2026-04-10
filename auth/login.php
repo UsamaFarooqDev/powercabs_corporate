@@ -21,6 +21,25 @@ try {
     $supabase = new SupabaseClient(true);
     // Use '*' to avoid schema-case issues (CID vs cid).
     $rows = $supabase->select('corporate', ['email' => $email], '*', null, 1);
+
+    // --- DEBUG START (remove after diagnosing) ---
+    error_log('=== LOGIN DEBUG ===');
+    error_log('Email entered: ' . $email);
+    error_log('Password entered length: ' . strlen($password));
+    error_log('Rows returned: ' . count($rows));
+    if (!empty($rows)) {
+        $dbCols = array_keys($rows[0]);
+        error_log('DB columns: ' . implode(', ', $dbCols));
+        error_log('pass column exists: ' . (isset($rows[0]['pass']) ? 'YES' : 'NO'));
+        error_log('password column exists: ' . (isset($rows[0]['password']) ? 'YES' : 'NO'));
+        $dbHash = $rows[0]['pass'] ?? ($rows[0]['password'] ?? 'MISSING');
+        error_log('Stored hash (first 20 chars): ' . substr($dbHash, 0, 20));
+        error_log('Stored hash length: ' . strlen($dbHash));
+        error_log('password_verify result: ' . (password_verify($password, $dbHash) ? 'TRUE' : 'FALSE'));
+    }
+    error_log('=== END DEBUG ===');
+    // --- DEBUG END ---
+
     if (empty($rows)) {
         echo json_encode(['success' => false, 'message' => 'Invalid email or password.']);
         exit;

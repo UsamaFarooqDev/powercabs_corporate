@@ -249,7 +249,7 @@ function validateAndSubmitForm() {
   const fareText = document.getElementById('summaryFare')?.textContent || '';
 
   if (!employee_id || !employee_name || !pickup || !dropoff || !pickupTime || !carType || !paymentSource) {
-    alert('Please fill in all required fields.');
+    showToast('Please fill in all required fields.', 'error');
     return;
   }
 
@@ -283,11 +283,11 @@ function validateAndSubmitForm() {
         const successModal = new bootstrap.Modal(document.getElementById('successModal'));
         successModal.show();
       } else {
-        alert(data.message || 'Could not save your ride. Please try again.');
+        showToast(data.message || 'Could not save your ride. Please try again.', 'error');
       }
     })
     .catch(error => {
       console.error('[RideScript] fetch error:', error);
-      alert('Failed to save ride.');
+      showToast('Failed to save ride. Please try again.', 'error');
     });
 }
