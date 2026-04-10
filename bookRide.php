@@ -22,7 +22,7 @@ try {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Book a Ride — PowerCabs</title>
+  <title>PowerCabs Corporate - Book a Ride</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
@@ -37,7 +37,7 @@ try {
     }
 
     .br-section-label {
-      font-size: .68rem;
+      font-size: var(--fs-label);
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: .07em;
@@ -49,7 +49,7 @@ try {
     .br-label {
       flex-shrink: 0;
       width: 130px;
-      font-size: .88rem;
+      font-size: var(--fs-body);
       font-weight: 500;
       color: #6b7280;
       line-height: 1.3;
@@ -57,7 +57,7 @@ try {
 
     .br-card .form-control,
     .br-card .form-select {
-      font-size: .9125rem;
+      font-size: var(--fs-input);
       border: 1px solid #e5e7eb;
       border-radius: 8px;
       padding: .42rem .7rem;
@@ -83,7 +83,7 @@ try {
       border: 1px solid #fde68a;
       background: #fffbeb;
       color: #92400e;
-      font-size: .98rem;
+      font-size: var(--fs-body);
       padding: .65rem 1rem;
     }
     #rideSummaryBar strong { color: #78350f; }
@@ -93,7 +93,7 @@ try {
       color: #fff;
       border: none;
       border-radius: 8px;
-      font-size: .9525rem;
+      font-size: var(--fs-btn);
       font-weight: 600;
       padding: .48rem 1.2rem;
       transition: background .15s, box-shadow .15s;
@@ -101,7 +101,7 @@ try {
     .btn-book:hover { background: #e06910; color: #fff; box-shadow: 0 4px 14px rgba(243,122,32,.35); }
 
     .btn-past {
-      font-size: .8rem;
+      font-size: var(--fs-small);
       font-weight: 600;
       color: #f37a20;
       text-decoration: none;
@@ -132,12 +132,12 @@ try {
     }
     .success-icon i { color: #16a34a; font-size: 1.5rem; }
 
-    .success-modal h5 { font-size: .95rem; font-weight: 700; color: #111827; }
-    .success-modal p  { font-size: .8rem; color: #6b7280; }
+    .success-modal h5 { font-size: var(--fs-card-heading); font-weight: 700; color: #111827; }
+    .success-modal p  { font-size: var(--fs-card-sub); color: #6b7280; }
 
     .btn-modal-primary {
       background: #f37a20; color: #fff; border: none;
-      border-radius: 8px; font-size: .8rem; font-weight: 600;
+      border-radius: 8px; font-size: var(--fs-btn); font-weight: 600;
       padding: .45rem 1rem;
       transition: background .15s;
     }
@@ -145,7 +145,7 @@ try {
 
     .btn-modal-secondary {
       border: 1px solid #e5e7eb; color: #374151;
-      border-radius: 8px; font-size: .8rem; font-weight: 500;
+      border-radius: 8px; font-size: var(--fs-btn); font-weight: 500;
       padding: .45rem 1rem; background: #fff;
       transition: background .15s;
     }

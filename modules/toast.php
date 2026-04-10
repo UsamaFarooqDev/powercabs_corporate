@@ -31,7 +31,7 @@ function showToast(message, type) {
          role="alert" aria-live="assertive" aria-atomic="true"
          style="background:${bg}; color:#fff; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
       <div class="d-flex">
-        <div class="toast-body d-flex align-items-center" style="font-size:14px; font-weight:500;">
+        <div class="toast-body d-flex align-items-center" style="font-size:var(--fs-body); font-weight:500;">
           ${icon}${message}
         </div>
         <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>

@@ -45,7 +45,7 @@ try {
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Employee Directory — PowerCabs</title>
+  <title>PowerCabs Corporate - Employee Directory</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
@@ -61,7 +61,7 @@ try {
     /* ── Add button ── */
     .btn-add {
       background: #f37a20; color: #fff; border: none;
-      border-radius: 8px; font-size: .8rem; font-weight: 600;
+      border-radius: 8px; font-size: var(--fs-btn); font-weight: 600;
       padding: .42rem .95rem;
       display: inline-flex; align-items: center; gap: .35rem;
       transition: background .15s, box-shadow .15s;
@@ -70,7 +70,7 @@ try {
 
     /* ── Search ── */
     .emp-search {
-      font-size: .8rem; border: 1px solid #e5e7eb;
+      font-size: var(--fs-input); border: 1px solid #e5e7eb;
       border-radius: 8px; padding: .38rem .75rem;
       background: #fff; max-width: 210px;
       transition: border-color .15s, box-shadow .15s;
@@ -79,13 +79,13 @@ try {
 
     /* ── Table ── */
     .emp-table thead th {
-      font-size: .72rem; font-weight: 600; color: #9ca3af;
+      font-size: var(--fs-th); font-weight: 600; color: #9ca3af;
       text-transform: uppercase; letter-spacing: .05em;
       border-bottom: 1px solid #e5e7eb !important;
       padding-bottom: .65rem; white-space: nowrap;
     }
     .emp-table tbody td {
-      font-size: .8125rem; color: #374151;
+      font-size: var(--fs-td); color: #374151;
       padding: .75rem .5rem;
       border-bottom: 1px solid #f3f4f6 !important;
       vertical-align: middle;
@@ -97,14 +97,14 @@ try {
     .emp-avatar {
       width: 28px; height: 28px; border-radius: 50%;
       background: #fff4eb; color: #f37a20;
-      font-size: .65rem; font-weight: 700;
+      font-size: .7rem; font-weight: 700;
       display: inline-flex; align-items: center; justify-content: center;
       flex-shrink: 0; letter-spacing: .02em;
     }
 
     /* ── Action buttons ── */
     .btn-edit {
-      font-size: .75rem; font-weight: 500; color: #374151;
+      font-size: var(--fs-small); font-weight: 500; color: #374151;
       border: 1px solid #e5e7eb; border-radius: 6px;
       padding: .25rem .65rem; background: #fff;
       transition: background .12s, border-color .12s;
@@ -112,39 +112,28 @@ try {
     .btn-edit:hover { background: #f9fafb; border-color: #d1d5db; }
 
     .btn-remove {
-      font-size: .75rem; font-weight: 500; color: #dc2626;
+      font-size: var(--fs-small); font-weight: 500; color: #dc2626;
       border: 1px solid #fecaca; border-radius: 6px;
       padding: .25rem .65rem; background: #fff;
       transition: background .12s;
     }
     .btn-remove:hover { background: #fef2f2; }
 
-    /* ── DataTables overrides ── */
-    div.dataTables_wrapper div.dataTables_filter,
-    div.dataTables_wrapper div.dataTables_length { display: none; }
-    div.dataTables_wrapper div.dataTables_info   { font-size: .75rem; color: #9ca3af; }
-    div.dataTables_wrapper div.dataTables_paginate .paginate_button {
-      font-size: .78rem !important; border-radius: 6px !important; padding: .25rem .6rem !important;
-    }
-    div.dataTables_wrapper div.dataTables_paginate .paginate_button.current {
-      background: #f37a20 !important; border-color: #f37a20 !important; color: #fff !important;
-    }
-
     /* ── Shared modal styles ── */
     .pc-modal .modal-content  { border-radius: 14px; border: 1px solid #eeeff2; }
     .pc-modal .modal-header   { border-bottom: 1px solid #f3f4f6; padding: 1.1rem 1.4rem .85rem; }
-    .pc-modal .modal-title    { font-size: .9rem; font-weight: 700; color: #111827; }
+    .pc-modal .modal-title    { font-size: var(--fs-card-heading); font-weight: 700; color: #111827; }
     .pc-modal .btn-close      { opacity: .4; }
     .pc-modal .modal-body     { padding: 1.25rem 1.4rem; }
     .pc-modal .modal-footer   { border-top: 1px solid #f3f4f6; padding: .85rem 1.4rem; }
 
     .pc-modal label {
-      font-size: .73rem; font-weight: 600; color: #6b7280;
+      font-size: var(--fs-label); font-weight: 600; color: #6b7280;
       text-transform: uppercase; letter-spacing: .05em; margin-bottom: .3rem;
     }
     .pc-modal .form-control,
     .pc-modal .form-select {
-      font-size: .8125rem; border: 1px solid #e5e7eb; border-radius: 8px;
+      font-size: var(--fs-input); border: 1px solid #e5e7eb; border-radius: 8px;
       padding: .42rem .7rem; color: #111827;
       transition: border-color .15s, box-shadow .15s;
     }
@@ -155,21 +144,21 @@ try {
 
     .btn-pc-primary {
       background: #f37a20; color: #fff; border: none;
-      border-radius: 8px; font-size: .8rem; font-weight: 600;
+      border-radius: 8px; font-size: var(--fs-btn); font-weight: 600;
       padding: .45rem 1.1rem; transition: background .15s;
     }
     .btn-pc-primary:hover { background: #e06910; color: #fff; }
 
     .btn-pc-danger {
       background: #dc2626; color: #fff; border: none;
-      border-radius: 8px; font-size: .8rem; font-weight: 600;
+      border-radius: 8px; font-size: var(--fs-btn); font-weight: 600;
       padding: .45rem 1.1rem; transition: background .15s;
     }
     .btn-pc-danger:hover { background: #b91c1c; color: #fff; }
 
     .btn-pc-cancel {
       background: #fff; color: #374151; border: 1px solid #e5e7eb;
-      border-radius: 8px; font-size: .8rem; font-weight: 500;
+      border-radius: 8px; font-size: var(--fs-btn); font-weight: 500;
       padding: .45rem 1.1rem; transition: background .15s;
     }
     .btn-pc-cancel:hover { background: #f9fafb; }
@@ -186,8 +175,8 @@ try {
         <!-- ── Card header ── -->
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
           <div>
-            <h6 class="fw-semibold mb-0" style="font-size:.9rem; color:#111827">Employees</h6>
-            <span class="d-block mt-1" style="font-size:.75rem; color:#9ca3af">
+            <h6 class="fw-semibold mb-0" style="font-size:var(--fs-card-heading); color:#111827">Employees</h6>
+            <span class="d-block mt-1" style="font-size:var(--fs-card-sub); color:#9ca3af">
               <?= count($employeesRows) ?> total
             </span>
           </div>
@@ -210,7 +199,7 @@ try {
                 <th>Contact</th>
                 <th>Rides</th>
                 <th>Expense</th>
-                <th>Actions</th>
+                <th class="text-end">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -233,7 +222,7 @@ try {
                 <td><?= htmlspecialchars($emp['number_of_rides']) ?></td>
                 <td>€<?= htmlspecialchars($emp['expense_of_rides']) ?></td>
                 <td>
-                  <div class="d-flex gap-2">
+                  <div class="d-flex gap-2 justify-content-end">
                     <button class="btn-edit"
                       data-bs-toggle="modal"
                       data-bs-target="#editEmployeeModal<?= $emp['Employee_id'] ?>">

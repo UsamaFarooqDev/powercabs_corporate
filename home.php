@@ -25,6 +25,13 @@ try {
     if (($row['status'] ?? '') === 'Pending') $pending_rides++;
     $expense += floatval($row['fare'] ?? 0);
   }
+  try {
+    $empRows   = $supabase->select('corporate_employees', ['cid' => $cid], '*');
+    $employees = count($empRows);
+  } catch (Throwable $empErr) {
+    error_log('home.php employee count error: ' . $empErr->getMessage());
+    $employees = 0;
+  }
 } catch (Throwable $e) {
   $rides = [];
   $ridesFetchError = $e->getMessage();
@@ -36,7 +43,7 @@ try {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard — PowerCabs</title>
+  <title> PowerCabs Corporate - Dashboard</title>
 
   <!-- Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
@@ -56,38 +63,26 @@ try {
       transition: box-shadow .15s ease, transform .15s ease;
     }
     .stat-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.07) !important; transform: translateY(-1px); }
+    .stat-card .card-body { padding: 1.35rem 1.25rem !important; }
 
     .stat-icon {
-      width: 52px; height: 52px;
-      border-radius: 12px;
+      width: 56px; height: 56px;
+      border-radius: 14px;
       background: #fff4eb;
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
-    .stat-icon i { color: #f37a20; font-size: 1.35rem; }
+    .stat-icon i { color: #f37a20; font-size: 1.45rem; }
 
-    .stat-label { font-size: .72rem; font-weight: 500; color: #9ca3af; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 2px; }
-    .stat-value { font-size: 1.45rem; font-weight: 700; color: #111827; line-height: 1; }
+    .stat-label { font-size: var(--fs-label); font-weight: 500; color: #9ca3af; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 4px; }
+    .stat-value { font-size: 1.55rem; font-weight: 700; color: #111827; line-height: 1.1; }
 
-    .btn-book {
-      background: #f37a20;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: .9925rem;
-      font-weight: 600;
-      padding: .45rem 1rem;
-      display: inline-flex;
-      align-items: center;
-      gap: .4rem;
-      transition: background .15s ease, box-shadow .15s ease;
-    }
-    .btn-book:hover { background: #e06910; color: #fff; box-shadow: 0 4px 14px rgba(243,122,32,.35); }
+
 
     .rides-card { border-radius: 16px; border: 1px solid #eeeff2; }
 
     .rides-search {
-      font-size: .9rem;
+      font-size: var(--fs-input);
       border: 1px solid #e5e7eb;
       border-radius: 8px;
       padding: .38rem .75rem;
@@ -98,61 +93,6 @@ try {
     }
     .rides-search:focus { border-color: #f37a20; box-shadow: 0 0 0 3px rgba(243,122,32,.12); }
 
-    .rides-table thead th {
-      font-size: .72rem;
-      font-weight: 600;
-      color: #9ca3af;
-      text-transform: uppercase;
-      letter-spacing: .05em;
-      border-bottom: 1px solid #e5e7eb !important;
-      padding-bottom: .65rem;
-      white-space: nowrap;
-    }
-    .rides-table tbody td {
-      font-size: .8125rem;
-      color: #374151;
-      padding: .75rem .5rem;
-      border-bottom: 1px solid #f3f4f6 !important;
-      vertical-align: middle;
-    }
-    .rides-table tbody tr:last-child td { border-bottom: none !important; }
-    .rides-table tbody tr:hover td { background: #fafafa; }
-
-    .badge-status {
-      display: inline-flex;
-      align-items: center;
-      gap: .28rem;
-      font-size: .7rem;
-      font-weight: 600;
-      padding: .22rem .6rem;
-      border-radius: 99px;
-      letter-spacing: .02em;
-    }
-    .badge-status::before {
-      content: '';
-      width: 5px; height: 5px;
-      border-radius: 50%;
-      background: currentColor;
-      opacity: .7;
-    }
-    .badge-completed  { background: #f0fdf4; color: #16a34a; }
-    .badge-inprogress { background: #fffbeb; color: #d97706; }
-    .badge-pending    { background: #eff6ff; color: #2563eb; }
-    .badge-cancelled  { background: #fef2f2; color: #dc2626; }
-
-    div.dataTables_wrapper div.dataTables_filter,
-    div.dataTables_wrapper div.dataTables_length { display: none; }
-    div.dataTables_wrapper div.dataTables_info  { font-size: .75rem; color: #9ca3af; }
-    div.dataTables_wrapper div.dataTables_paginate .paginate_button {
-      font-size: .78rem !important;
-      border-radius: 6px !important;
-      padding: .25rem .6rem !important;
-    }
-    div.dataTables_wrapper div.dataTables_paginate .paginate_button.current {
-      background: #f37a20 !important;
-      border-color: #f37a20 !important;
-      color: #fff !important;
-    }
   </style>
 </head>
 <body>
@@ -160,12 +100,6 @@ try {
   <?php require 'modules/navbar.php'; ?>
 
   <main class="main-content p-4">
-
-    <div class="mb-3">
-      <a href="bookRide.php" class="btn-book text-decoration-none">
-        Book New Ride <i class="bi bi-arrow-right"></i>
-      </a>
-    </div>
 
     <div class="row g-3 mb-4">
 
@@ -200,8 +134,8 @@ try {
 
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
           <div>
-            <h6 class="fw-semibold mb-0" style="font-size:.9rem; color:#111827">Recent Rides</h6>
-            <span class="d-block mt-1" style="font-size:.75rem; color:#f37a20; font-weight:500">This Month</span>
+            <h6 class="fw-semibold mb-0" style="font-size:var(--fs-card-heading); color:#111827">Recent Rides</h6>
+            <span class="d-block mt-1" style="font-size:var(--fs-card-sub); color:#f37a20; font-weight:500">This Month</span>
           </div>
           <input
             type="text"
@@ -212,7 +146,7 @@ try {
         </div>
 
         <div class="table-responsive">
-          <table class="table rides-table datatable w-100">
+          <table class="table pc-table datatable w-100">
             <thead>
               <tr>
                 <th>Employee</th>
@@ -234,6 +168,13 @@ try {
                   'Cancelled'   => 'badge-cancelled',
                   default       => 'badge-pending',
                 };
+                $badgeIcon = match($status) {
+                  'Completed'   => 'bi-check-lg',
+                  'In Progress' => 'bi-arrow-repeat',
+                  'Pending'     => 'bi-clock',
+                  'Cancelled'   => 'bi-x-lg',
+                  default       => 'bi-clock',
+                };
               ?>
               <tr>
                 <td><?= htmlspecialchars($r['employee'] ?? '') ?></td>
@@ -242,7 +183,7 @@ try {
                 <td><?= htmlspecialchars($r['pickupTime'] ?? '') ?></td>
                 <td><?= htmlspecialchars($r['vehicle_number'] ?? 'N/A') ?></td>
                 <td>€<?= htmlspecialchars($r['fare'] ?? '0') ?></td>
-                <td><span class="badge-status <?= $badgeClass ?>"><?= htmlspecialchars($status) ?></span></td>
+                <td><span class="badge-status <?= $badgeClass ?>" title="<?= htmlspecialchars($status) ?>"><i class="bi <?= $badgeIcon ?>"></i></span></td>
               </tr>
               <?php endforeach; ?>
             </tbody>
