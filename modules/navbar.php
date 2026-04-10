@@ -64,7 +64,7 @@ $initials = strtoupper(
   .sn-toggler svg   { width: 15px; height: 15px; }
 
   .sn-page-title {
-    font-size:   1.4125rem; 
+    font-size:   var(--fs-page-title);
     font-weight: 700;
     color:       var(--nav-text);
     letter-spacing: .01em;
@@ -113,7 +113,7 @@ $initials = strtoupper(
 
   .sn-dropdown .dropdown-item {
     border-radius:  4px;
-    font-size:      .9rem;
+    font-size:      var(--fs-body);
     padding:        .38rem .65rem;
     color:          var(--nav-text);
     transition:     background var(--transition);
@@ -122,7 +122,7 @@ $initials = strtoupper(
   .sn-dropdown .dropdown-item:hover { background: var(--dd-hover); }
 
   .sn-dropdown .sn-dd-label {
-    font-size:     .7rem;
+    font-size:     var(--fs-small);
     color:         var(--nav-muted);
     padding:       .35rem .65rem .1rem;
     font-weight:   500;
@@ -185,3 +185,4 @@ $initials = strtoupper(
 </div>
 
 <?php require __DIR__ . '/toast.php'; ?>
+<?php require __DIR__ . '/fab-bookride.php'; ?>
