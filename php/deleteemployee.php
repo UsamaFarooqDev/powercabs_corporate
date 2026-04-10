@@ -1,46 +1,31 @@
 <?php
 session_start();
-@include 'connection.php'; // Adjust path if needed
+require_once __DIR__ . '/../auth/supabase.php';
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Get and sanitize input
-    $employee_id = htmlspecialchars(trim($_POST['id'])); // Assuming it's a string
+header('Content-Type: application/json');
 
-    if (empty($employee_id)) {
-        $_SESSION['error'] = "Employee ID is required.";
-        header("Location: " . $_SERVER['HTTP_REFERER']);
-        exit();
-    }
-
-    // Prepare DELETE query
-    $stmt = $conn->prepare("DELETE FROM corporate_employees WHERE id = ?");
-    if (!$stmt) {
-        $_SESSION['error'] = "Database error: Unable to prepare delete statement.";
-        header("Location: " . $_SERVER['HTTP_REFERER']);
-        exit();
-    }
-
-    // Bind parameter (assuming Employee_id is a string)
-    $stmt->bind_param("s", $employee_id);
-
-    // Execute the query
-    if ($stmt->execute()) {
-        if ($stmt->affected_rows > 0) {
-            $_SESSION['success'] = "Employee deleted successfully.";
-        } else {
-            $_SESSION['error'] = "No employee found with that ID.";
-        }
-    } else {
-        $_SESSION['error'] = "Error deleting employee: " . $stmt->error;
-    }
-
-    // Close statement
-    $stmt->close();
-} else {
-    $_SESSION['error'] = "Invalid request method.";
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    echo json_encode(['success' => false, 'message' => 'Invalid request.']);
+    exit;
 }
 
-// Redirect back
-header("Location: " . $_SERVER['HTTP_REFERER']);
-exit();
-?>
+if (!isset($_SESSION['user'])) {
+    echo json_encode(['success' => false, 'message' => 'Not authenticated.']);
+    exit;
+}
+
+$employee_id = htmlspecialchars(trim($_POST['id'] ?? ''));
+
+if ($employee_id === '') {
+    echo json_encode(['success' => false, 'message' => 'Employee ID is required.']);
+    exit;
+}
+
+try {
+    $supabase = new SupabaseClient(true);
+    $supabase->delete('corporate_employees', ['id' => $employee_id]);
+    echo json_encode(['success' => true, 'message' => 'Employee removed successfully.']);
+} catch (Throwable $e) {
+    error_log('deleteemployee.php: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Error removing employee.']);
+}

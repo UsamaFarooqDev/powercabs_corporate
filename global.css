@@ -17,14 +17,28 @@
   background-color: #ff7a00 !important;
   border: none !important;
 }
+
+/* Navbar sits to the right of the sidebar */
+.sn-navbar {
+  position: fixed !important;
+  top: 0;
+  left: 220px;
+  right: 0;
+  z-index: 1030;
+}
+
 .main-content {
   margin-left: 220px;
+  margin-top: 52px; /* push below fixed navbar */
   transition: margin 0.3s ease;
 }
 
 @media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);
+  }
+  .sn-navbar {
+    left: 0 !important;
   }
   .main-content {
     margin-left: 0;

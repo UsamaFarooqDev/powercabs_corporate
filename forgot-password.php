@@ -95,7 +95,7 @@ session_start();
                             </div>
                             <button type="submit" class="btn w-100 mb-3" style="background-color: #f37a20; color: #fff">Send OTP</button>
                             <div class="text-center">
-                                <a href="index.php" class="back-to-login"><i class="fas fa-arrow-left"></i> Back to Login</a>
+                                <a href="login.php" class="back-to-login"><i class="fas fa-arrow-left"></i> Back to Login</a>
                             </div>
                         </form>
                     </div>

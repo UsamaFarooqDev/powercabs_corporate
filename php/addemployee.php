@@ -1,88 +1,61 @@
 <?php
 session_start();
-@include 'connection.php';
+require_once __DIR__ . '/../auth/supabase.php';
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Retrieve form data
-    $companyName = htmlspecialchars(trim($_POST['companyname']));
-    $cid         = htmlspecialchars(trim($_POST['cid'])); // Now treated as string
-    $name        = htmlspecialchars(trim($_POST['name']));
-    $email       = filter_var(trim($_POST['email']), FILTER_SANITIZE_EMAIL);
-    $contact     = htmlspecialchars(trim($_POST['contact']));
-    $department  = htmlspecialchars(trim($_POST['department'] ?? ''));
+header('Content-Type: application/json');
 
-    // Validate required inputs
-    if (empty($name) || empty($email) || empty($contact)) {
-        $_SESSION['error'] = "Name, Email, and Contact are required.";
-        header("Location: " . $_SERVER['HTTP_REFERER']);
-        exit();
-    }
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    echo json_encode(['success' => false, 'message' => 'Invalid request.']);
+    exit;
+}
 
-    // Generate company short name (first 3 letters, uppercase)
-    // $shortName = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $companyName), 0, 3));
+if (!isset($_SESSION['user'])) {
+    echo json_encode(['success' => false, 'message' => 'Not authenticated.']);
+    exit;
+}
 
-    // Generate unique ID
+$user        = $_SESSION['user'];
+$companyName = $user['name'];
+$cid         = $user['cid'];
+
+$name       = htmlspecialchars(trim($_POST['name'] ?? ''));
+$email      = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
+$contact    = htmlspecialchars(trim($_POST['phone'] ?? $_POST['contact'] ?? ''));
+$department = htmlspecialchars(trim($_POST['department'] ?? ''));
+
+if ($name === '' || $email === '' || $contact === '') {
+    echo json_encode(['success' => false, 'message' => 'Name, email, and phone are required.']);
+    exit;
+}
+
+try {
+    $supabase = new SupabaseClient(true);
     $newID = null;
     $attempts = 0;
-
     do {
-        $randomDigits = rand(1000, 9999);
-        $newID = $companyName . $randomDigits;
-
-        $checkStmt = $conn->prepare("SELECT id FROM corporate_employees WHERE id = ?");
-        $checkStmt->bind_param("s", $newID);
-        $checkStmt->execute();
-        $checkStmt->store_result();
-
-        if ($checkStmt->num_rows === 0) {
-            break; // Unique ID found
-        }
-
+        $newID = preg_replace('/\s+/', '', $companyName) . rand(1000, 9999);
+        $existing = $supabase->select('corporate_employees', ['id' => $newID], 'id', null, 1);
+        if (empty($existing)) break;
         $attempts++;
     } while ($attempts < 10);
 
     if ($attempts >= 10) {
-        $_SESSION['error'] = "Could not generate a unique ID for this employee.";
-        header("Location: " . $_SERVER['HTTP_REFERER']);
-        exit();
+        echo json_encode(['success' => false, 'message' => 'Could not generate a unique employee ID.']);
+        exit;
     }
 
-    // Prepare insert statement
-    $stmt = $conn->prepare("
-        INSERT INTO corporate_employees (id, name, email, phone, department, cid, company)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    ");
+    $supabase->insert('corporate_employees', [
+        'id'         => $newID,
+        'name'       => $name,
+        'email'      => $email,
+        'phone'      => $contact,
+        'department' => $department,
+        'cid'        => $cid,
+        'company'    => $companyName,
+    ]);
 
-    if (!$stmt) {
-        $_SESSION['error'] = "Database error: Unable to prepare SQL statement.";
-        header("Location: " . $_SERVER['HTTP_REFERER']);
-        exit();
-    }
-
-    // Bind parameters (all are strings now except maybe phone)
-    $stmt->bind_param(
-        "sssssss",
-        $newID,
-        $name,
-        $email,
-        $contact,
-        $department,
-        $cid,
-        $companyName
-    );
-
-    // Execute query
-    if ($stmt->execute()) {
-        $_SESSION['success'] = "New employee added successfully with ID: $newID";
-    } else {
-        $_SESSION['error'] = "Error adding employee: " . $stmt->error;
-    }
-
-    // Close statements
-    $stmt->close();
+    echo json_encode(['success' => true, 'message' => 'Employee added successfully.']);
+} catch (Throwable $e) {
+    error_log('addemployee.php: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Error adding employee.']);
 }
-
-// Redirect back
-header("Location: " . $_SERVER['HTTP_REFERER']);
-exit();
-?>

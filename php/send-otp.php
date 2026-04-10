@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'connection.php';
+require_once __DIR__ . '/../auth/supabase.php';
 
 // Enable error reporting
 error_reporting(E_ALL);
@@ -14,37 +14,26 @@ function logDebug($message) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $email = mysqli_real_escape_string($conn, $_POST['email']);
+    $email = trim($_POST['email']);
     logDebug("Processing OTP request for email: $email");
     
-    // Check if email exists in corporate table
-    $query = "SELECT * FROM corporate WHERE email = '$email'";
-    $result = mysqli_query($conn, $query);
-    
-    if (!$result) {
-        logDebug("Database error: " . mysqli_error($conn));
-        $_SESSION['error'] = "Database error occurred. Please try again.";
-        header("Location: ../forgot-password.php");
-        exit();
-    }
-    
-    if (mysqli_num_rows($result) > 0) {
-        $user = mysqli_fetch_assoc($result);
+    try {
+        $supabase = new SupabaseClient(true);
+        $users = $supabase->select('corporate', ['email' => $email], 'email', null, 1);
+        if (!empty($users)) {
         
-        // Generate 6-digit OTP
-        $otp = sprintf("%06d", mt_rand(1, 999999));
-        $expiry = date('Y-m-d H:i:s', strtotime('+10 minutes'));
+            $otp = sprintf("%06d", mt_rand(1, 999999));
+            $expiry = date('Y-m-d H:i:s', strtotime('+10 minutes'));
         
-        logDebug("Generated OTP: $otp for email: $email");
+            logDebug("Generated OTP: $otp for email: $email");
         
-        // First, clear any existing OTPs for this email
-        $clear_query = "DELETE FROM password_resets WHERE email = '$email'";
-        mysqli_query($conn, $clear_query);
+            $supabase->delete('password_resets', ['email' => $email]);
         
-        // Store new OTP in database
-        $insert_query = "INSERT INTO password_resets (email, otp, expiry) VALUES ('$email', '$otp', '$expiry')";
-        
-        if (mysqli_query($conn, $insert_query)) {
+            $supabase->insert('password_resets', [
+                'email' => $email,
+                'otp' => $otp,
+                'expiry' => $expiry
+            ]);
             logDebug("OTP stored in database successfully");
             
             // Store in session for backup
@@ -67,14 +56,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             exit();
             
         } else {
-            logDebug("Failed to store OTP: " . mysqli_error($conn));
-            $_SESSION['error'] = "Failed to generate OTP. Please try again.";
+            logDebug("Email not found: $email");
+            $_SESSION['error'] = "Email address not found in our records.";
             header("Location: ../forgot-password.php");
             exit();
         }
-    } else {
-        logDebug("Email not found: $email");
-        $_SESSION['error'] = "Email address not found in our records.";
+    } catch (Throwable $e) {
+        $_SESSION['error'] = "Failed to generate OTP. Please try again.";
         header("Location: ../forgot-password.php");
         exit();
     }

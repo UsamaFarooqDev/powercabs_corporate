@@ -1,20 +1,52 @@
-// Global variables
+// Global variables (pickup/dropoff flow mirrors pw_dispatcher/order.php)
 let map, directionsService, directionsRenderer;
 let pickupAutocomplete, dropoffAutocomplete;
+let mapsReady = false;
+let pickupLatLng = null;
+let dropoffLatLng = null;
 
-// Stripe globals
-let stripe, elements, clientSecret;
+const CORPORATE_RIDES_BC = 'powercab-corporate-rides';
+const CORPORATE_RIDES_LS = 'powercab_corporate_rides_refresh';
+
+function notifyDashboardAndRideHistoryUpdated() {
+  try {
+    const bc = new BroadcastChannel(CORPORATE_RIDES_BC);
+    bc.postMessage({ type: 'refresh' });
+    bc.close();
+  } catch (_) {
+    /* ignore */
+  }
+  try {
+    localStorage.setItem(CORPORATE_RIDES_LS, String(Date.now()));
+  } catch (_) {
+    /* ignore */
+  }
+}
 
 document.addEventListener('DOMContentLoaded', function () {
   console.log('[RideScript] DOMContentLoaded fired');
-  initMap();
-  initAutocomplete();
   setupFormListeners();
   setDefaultPickupTime();
-
-  // Init Stripe
-  stripe = Stripe("pk_live_51PxreuGONt82dusSgjBpB6jJ1E2Lo0VV1chFThOdapHDQqMu0EDuciwRyMREgeviL6C4WhTfFM1Xidmao8ZE2GMg00w4yj0JVc"); // ✅ your public key
 });
+
+/**
+ * Called by Google Maps script tag (callback=initBookRideGoogleMaps), same pattern as order.php initGoogleMaps.
+ */
+window.initBookRideGoogleMaps = function initBookRideGoogleMaps() {
+  if (typeof google === 'undefined' || !google.maps) {
+    setTimeout(initBookRideGoogleMaps, 200);
+    return;
+  }
+  const mapFrame = document.getElementById('mapFrame');
+  if (!mapFrame) {
+    setTimeout(initBookRideGoogleMaps, 100);
+    return;
+  }
+
+  initMap();
+  initAutocomplete();
+  mapsReady = true;
+};
 
 function setDefaultPickupTime() {
   console.log('[RideScript] Setting default pickup time');
@@ -72,15 +104,38 @@ function initAutocomplete() {
     return;
   }
 
-  pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput);
-  dropoffAutocomplete = new google.maps.places.Autocomplete(dropoffInput);
+  const acOptions = { fields: ['formatted_address', 'geometry', 'name'] };
 
-  pickupAutocomplete.addListener('place_changed', calculateDistanceAndFare);
-  dropoffAutocomplete.addListener('place_changed', calculateDistanceAndFare);
+  pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput, acOptions);
+  dropoffAutocomplete = new google.maps.places.Autocomplete(dropoffInput, acOptions);
+
+  pickupAutocomplete.addListener('place_changed', () => {
+    const place = pickupAutocomplete.getPlace();
+    if (place && place.formatted_address) {
+      pickupInput.value = place.formatted_address;
+    }
+    if (place && place.geometry && place.geometry.location) {
+      pickupLatLng = place.geometry.location;
+    }
+    calculateDistanceAndFare();
+  });
+  dropoffAutocomplete.addListener('place_changed', () => {
+    const place = dropoffAutocomplete.getPlace();
+    if (place && place.formatted_address) {
+      dropoffInput.value = place.formatted_address;
+    }
+    if (place && place.geometry && place.geometry.location) {
+      dropoffLatLng = place.geometry.location;
+    }
+    calculateDistanceAndFare();
+  });
 }
 
 function calculateDistanceAndFare() {
   console.log('[RideScript] calculateDistanceAndFare()');
+  if (!mapsReady || !directionsService || !directionsRenderer) {
+    return;
+  }
   const pickup = document.getElementById('pickup')?.value;
   const dropoff = document.getElementById('dropoff')?.value;
   const pickupTime = document.getElementById('pickupTime')?.value;
@@ -91,8 +146,8 @@ function calculateDistanceAndFare() {
   }
 
   const request = {
-    origin: pickup,
-    destination: dropoff,
+    origin: pickupLatLng || pickup,
+    destination: dropoffLatLng || dropoff,
     travelMode: google.maps.TravelMode.DRIVING,
   };
 
@@ -101,27 +156,28 @@ function calculateDistanceAndFare() {
       console.log('[RideScript] Directions result OK');
       directionsRenderer.setDirections(result);
       const leg = result.routes[0].legs[0];
+      pickupLatLng = leg.start_location;
+      dropoffLatLng = leg.end_location;
       const distanceInKm = leg.distance.value / 1000;
       const durationInMin = Math.round(leg.duration.value / 60);
       const fareAmount = calculateFare(distanceInKm, pickupTime);
 
-      const distanceElem = document.getElementById('distance');
-      const durationElem = document.getElementById('duration');
-      const fareElem = document.getElementById('fare');
-      const rideInfoAlert = document.getElementById('rideInfoAlert');
+      const summaryBar = document.getElementById('rideSummaryBar');
+      const summaryFare = document.getElementById('summaryFare');
+      const summaryDuration = document.getElementById('summaryDuration');
+      const summaryDistance = document.getElementById('summaryDistance');
 
-      if (!distanceElem || !durationElem || !fareElem || !rideInfoAlert) {
-        console.error('[RideScript] One of #distance, #duration, #fare, or #rideInfoAlert not found');
+      if (!summaryBar || !summaryFare || !summaryDuration || !summaryDistance) {
+        console.error('[RideScript] One of #rideSummaryBar, #summaryFare, #summaryDuration, or #summaryDistance not found');
         return;
       }
 
-      distanceElem.textContent = distanceInKm.toFixed(2);
-      durationElem.textContent = durationInMin;
-      fareElem.textContent = fareAmount.toFixed(2);
-      rideInfoAlert.classList.remove('d-none');
+      summaryFare.textContent = fareAmount.toFixed(2);
+      summaryDuration.textContent = durationInMin;
+      summaryDistance.textContent = distanceInKm.toFixed(2);
+      summaryBar.classList.remove('d-none');
     } else {
       console.error('[RideScript] DirectionsService failed:', status);
-      alert('Could not calculate directions. Please try again.');
     }
   });
 }
@@ -146,10 +202,17 @@ function calculateFare(distanceInKm, pickupTimeStr) {
 
 function setupFormListeners() {
   console.log('[RideScript] setupFormListeners()');
+  const pickupInput = document.getElementById('pickup');
+  const dropoffInput = document.getElementById('dropoff');
   const pickupTimeInput = document.getElementById('pickupTime');
   const employeeSelect = document.getElementById('employee');
   const bookRideBtn = document.getElementById('bookRideBtn');
-  const paymentSelect = document.getElementById('paymentSource');
+
+  [pickupInput, dropoffInput].forEach((el) => {
+    if (!el) return;
+    el.addEventListener('change', calculateDistanceAndFare);
+    el.addEventListener('blur', calculateDistanceAndFare);
+  });
 
   if (pickupTimeInput) {
     pickupTimeInput.addEventListener('change', calculateDistanceAndFare);
@@ -165,66 +228,11 @@ function setupFormListeners() {
   if (bookRideBtn) {
     bookRideBtn.addEventListener('click', validateAndSubmitForm);
   }
-
-  // Watch payment source
-  if (paymentSelect) {
-    paymentSelect.addEventListener('change', (e) => {
-      if (e.target.value === "Credit Card") {
-        showStripePaymentUI();
-      } else {
-        hideStripePaymentUI();
-      }
-    });
-  }
-}
-
-// ==== STRIPE LOGIC ====
-
-function showStripePaymentUI() {
-  console.log('[Stripe] showStripePaymentUI()');
-  const section = document.getElementById("paymentSection");
-  if (!section) return;
-  section.classList.remove("d-none");
-
-  // Get client secret from server
-  fetch("php/create_payment.php", { method: "POST" })
-    .then(res => res.json())
-    .then(data => {
-      clientSecret = data.clientSecret;
-      elements = stripe.elements({ clientSecret });
-      const paymentElement = elements.create("payment");
-      paymentElement.mount("#payment-element");
-    })
-    .catch(err => console.error("[Stripe] create_payment error:", err));
-}
-
-function hideStripePaymentUI() {
-  const section = document.getElementById("paymentSection");
-  if (section) section.classList.add("d-none");
-}
-
-async function processStripePayment() {
-  console.log("[Stripe] processStripePayment()");
-  const { error } = await stripe.confirmPayment({
-    elements,
-    confirmParams: {
-      return_url: window.location.href,
-    },
-    redirect: "if_required"
-  });
-
-  if (error) {
-    alert("Payment failed: " + error.message);
-    throw error;
-  } else {
-    console.log("[Stripe] Payment success");
-    return true;
-  }
 }
 
 // ==== FORM SUBMISSION ====
 
-async function validateAndSubmitForm() {
+function validateAndSubmitForm() {
   console.log('[RideScript] validateAndSubmitForm()');
 
   const employee_id = document.getElementById('employee')?.value;
@@ -236,24 +244,13 @@ async function validateAndSubmitForm() {
   const paymentSource = document.getElementById('paymentSource')?.value;
   const employee_phone = document.getElementById('employeePhone')?.value;
 
-  const distanceText = document.getElementById('distance')?.textContent || '';
-  const durationText = document.getElementById('duration')?.textContent || '';
-  const fareText = document.getElementById('fare')?.textContent || '';
+  const distanceText = document.getElementById('summaryDistance')?.textContent || '';
+  const durationText = document.getElementById('summaryDuration')?.textContent || '';
+  const fareText = document.getElementById('summaryFare')?.textContent || '';
 
   if (!employee_id || !employee_name || !pickup || !dropoff || !pickupTime || !carType || !paymentSource) {
-    alert('Please fill in all required fields.');
+    showToast('Please fill in all required fields.', 'error');
     return;
-  }
-
-  // If Credit Card -> process Stripe first
-  if (paymentSource === "Credit Card") {
-    try {
-      const ok = await processStripePayment();
-      if (!ok) return; // don’t save ride if payment failed
-    } catch (err) {
-      console.error("[RideScript] Stripe payment error:", err);
-      return;
-    }
   }
 
   const rideData = {
@@ -272,8 +269,9 @@ async function validateAndSubmitForm() {
 
   console.log('[RideScript] Sending rideData:', rideData);
 
-  fetch('php/save_ride.php', {
+  fetch(new URL('php/save_ride.php', window.location.href).href, {
     method: 'POST',
+    credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(rideData)
   })
@@ -281,14 +279,15 @@ async function validateAndSubmitForm() {
     .then(data => {
       console.log('[RideScript] Server response:', data);
       if (data.success) {
+        notifyDashboardAndRideHistoryUpdated();
         const successModal = new bootstrap.Modal(document.getElementById('successModal'));
         successModal.show();
       } else {
-        alert('Error saving ride: ' + (data.message || 'Unknown error'));
+        showToast(data.message || 'Could not save your ride. Please try again.', 'error');
       }
     })
     .catch(error => {
       console.error('[RideScript] fetch error:', error);
-      alert('Failed to save ride.');
+      showToast('Failed to save ride. Please try again.', 'error');
     });
 }

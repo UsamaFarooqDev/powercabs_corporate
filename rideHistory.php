@@ -1,15 +1,20 @@
-<?php 
-
+<?php
 session_start();
-@include('php/connection.php');
+require_once __DIR__ . '/auth/supabase.php';
 if (!isset($_SESSION['user'])) {
-  header("Location: index.php"); // Redirect to login if the user is not logged in
+  header("Location: login.php");
   exit;
 }
 $user = $_SESSION['user'];
 $cid = $user['cid'];
-$emp = "select * from corporate_rides where cid = '$cid'";
-$result2 = mysqli_query($conn,$emp);
+$pageTitle = 'Ride History';
+$rides = [];
+try {
+  $supabase = new SupabaseClient(true);
+  $rides = $supabase->select('corporate_rides', ['cid' => $cid], '*', 'date.desc');
+} catch (Throwable $e) {
+  $rides = [];
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -32,79 +37,7 @@ $result2 = mysqli_query($conn,$emp);
   </head>
   <body>
 
-    <nav
-      class="navbar navbar-expand-lg navbar-light bg-white d-flex align-items-center justify-content-between p-3"
-    >
-      <div class="d-flex align-items-center">
-        <button
-          class="navbar-toggler me-2 d-md-none btn btn-light border-none"
-          style="padding: 4px; margin-left: 0px"
-          type="button"
-          id="sidebarToggle"
-        >
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <h1 class="navbar-title m-0 fw-bold ms-lg-230" id="pageTitle">
-          Ride History
-        </h1>
-      </div>
-
-      <div class="d-flex align-items-center">
-        <!-- <div class="me-4 d-none d-lg-inline-block">
-          <input
-            type="text"
-            placeholder="Search for something"
-            class="form-control"
-            style="
-              border-radius: 50px;
-              height: 50px;
-              width: 200px;
-              background: #f2f6fd;
-              border: none;
-              padding: 0 20px;
-              font-size: 0.9rem;
-              color: #333;
-            "
-          />
-        </div> -->
-
-        <div class="d-flex align-items-center ms-3">
-          <!-- <button
-            class="btn rounded-circle d-none d-lg-inline-block me-4"
-            style="width: 50px; height: 50px; background: #f2f6fd"
-          >
-            <i
-              class="bi bi-gear-fill"
-              style="color: #969696; font-size: 1.45rem"
-            ></i>
-          </button>
-          <button
-            class="btn rounded-circle d-none d-lg-inline-block me-4"
-            style="width: 50px; height: 50px; background: #f2f6fd"
-          >
-            <i
-              class="bi bi-bell-fill"
-              style="color: #f37a20; font-size: 1.45rem"
-            ></i>
-          </button> -->
-
-          <div class="dropdown" id="avatarDropdown">
-            <img
-              src="assets/profile.svg"
-              alt="Profile"
-              class="rounded-circle profile-img"
-              style="width: 50px; height: 50px; cursor: pointer"
-            />
-          </div>
-        </div>
-      </div>
-    </nav>
-
-    <div class="sidebar text-white p-3">
-    <?php 
-        @require('modules/sidebar.php');
-      ?>
-    </div>
+    <?php require 'modules/navbar.php'; ?>
 
     <main class="main-content p-4" style="background: #f5f7fa">
       <div class="card shadow border-0" style='border-radius: 25px;'>
@@ -159,16 +92,13 @@ $result2 = mysqli_query($conn,$emp);
                         <th style='border-bottom: 1px solid #e5e5e5; color: #969696; font-size: 14px; font-weight: 500;'>Status</th>
                     </tr>
                     </thead>
-                    <tbody>
-                    <?php 
-                        while($emp_data = mysqli_fetch_array($result2))
-                        {
-                      ?>
+                    <tbody id="rides-body">
+                    <?php foreach ($rides as $emp_data): ?>
                         <tr style='border-bottom: 1px solid #e5e5e5;'>
                             <td class='py-3' style='font-size: 14px;'><?= $emp_data['employee']; ?></td>
                             <td class='py-3' style='font-size: 14px;'><?= $emp_data['pickup']; ?></td>
                             <td class='py-3' style='font-size: 14px;'><?= $emp_data['destination']; ?></td>
-                            <td class='py-3' style='font-size: 14px;'><?= $emp_data['pickupTime']; ?></td>
+                            <td class='py-3' style='font-size: 14px;'><?= htmlspecialchars($emp_data['pickupTime'] ?? ''); ?></td>
                             <td class='py-3' style='font-size: 14px;'><?= $emp_data['vehicle_number'] ?? 'N/A' ?></td>
                             <td class='py-3' style='font-size: 14px;'>€<?= $emp_data['fare']; ?></td>
                             <td class='py-3' style='font-size: 14px;'>
@@ -190,9 +120,7 @@ if ($status == 'In Progress') {
 </span>
                             </td>
                         </tr>
-                        <?php 
-                        }
-                        ?>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
@@ -211,6 +139,15 @@ if ($status == 'In Progress') {
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script src="js/script.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  window.RIDES_REALTIME_CONFIG = {
+    cid: <?= json_encode($cid); ?>,
+    supabaseUrl: <?= json_encode(SUPABASE_URL); ?>,
+    supabaseAnonKey: <?= json_encode(SUPABASE_ANON_KEY); ?>,
+  };
+</script>
+<script src="js/realtime-rides.js"></script>
     <script>
       document
         .getElementById('sidebarToggle')
@@ -228,20 +165,6 @@ if ($status == 'In Progress') {
           sidebar.classList.remove('active');
         }
       });
-      function updatePageTitle() {
-        const routeTitles = {
-          '/dashboard': 'Dashboard',
-          '/employee': 'Employee Directory',
-          '/ride-history': 'Ride History',
-          '/book-ride': 'Book a Ride',
-          '/promotion': 'Promotions & Coupon',
-          '/profile': 'Profile',
-        };
-        const path = window.location.pathname;
-        document.getElementById('pageTitle').textContent =
-          routeTitles[path] || 'Dashboard';
-      }
-
       function toggleSidebar() {
         console.log('Sidebar toggle functionality would go here');
       }

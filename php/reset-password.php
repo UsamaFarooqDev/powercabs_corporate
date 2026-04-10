@@ -1,6 +1,6 @@
 <?php
 session_start();
-@include 'connection.php';
+require_once __DIR__ . '/../auth/supabase.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Check if reset was verified
@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         exit();
     }
     
-    $email = mysqli_real_escape_string($conn, $_POST['email']);
+    $email = trim($_POST['email']);
     $new_password = $_POST['new_password'];
     $confirm_password = $_POST['confirm_password'];
     
@@ -24,22 +24,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Hash the new password
     $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
     
-    // Update password in database
-    $update_query = "UPDATE corporate SET password = '$hashed_password' WHERE email = '$email'";
-    
-    if (mysqli_query($conn, $update_query)) {
-        // Delete used OTP
-        $delete_query = "DELETE FROM password_resets WHERE email = '$email'";
-        mysqli_query($conn, $delete_query);
+    try {
+        $supabase = new SupabaseClient(true);
+        $supabase->update('corporate', ['email' => $email], ['pass' => $hashed_password]);
+        $supabase->delete('password_resets', ['email' => $email]);
         
-        // Clear session variables
         unset($_SESSION['reset_verified']);
         unset($_SESSION['reset_email']);
         
         $_SESSION['success'] = "Password reset successful! You can now login with your new password.";
-        header("Location: ../index.php");
+        header("Location: ../login.php");
         exit();
-    } else {
+    } catch (Throwable $e) {
         $_SESSION['error'] = "Failed to reset password. Please try again.";
         header("Location: ../forgot-password.php?step=reset&email=" . urlencode($email));
         exit();
