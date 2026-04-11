@@ -1,156 +1,165 @@
-        <?php
-// Fixed path to PHPMailer - adjust based on your actual folder structure
+<?php
+/**
+ * PHPMailer-based OTP email. Uses MAIL_HOST, MAIL_USERNAME, MAIL_PASSWORD,
+ * MAIL_FROM_ADDRESS, MAIL_FROM_NAME, MAIL_SMTP_PORT in auth/config.php.
+ */
+require_once __DIR__ . '/../auth/config.php';
+
 use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\SMTP;
-use PHPMailer\PHPMailer\Exception;
+use PHPMailer\PHPMailer\Exception as MailException;
 
-// Method 1: If PHPMailer is in the same directory
 $phpmailer_path = __DIR__ . '/PHPMailer/src/';
-
-// Method 2: If you downloaded and placed PHPMailer in a folder
-// $phpmailer_path = __DIR__ . '/PHPMailer/src/';
-
-// Check if files exist and include them
-if (file_exists($phpmailer_path . 'Exception.php')) {
-    require_once $phpmailer_path . 'Exception.php';
-    require_once $phpmailer_path . 'PHPMailer.php';
-    require_once $phpmailer_path . 'SMTP.php';
-} else {
-    // Alternative: Try relative path from root
-    $alt_path = __DIR__ . '/../PHPMailer/src/';
-    if (file_exists($alt_path . 'Exception.php')) {
-        require_once $alt_path . 'Exception.php';
-        require_once $alt_path . 'PHPMailer.php';
-        require_once $alt_path . 'SMTP.php';
-    } else {
-        // If still not found, show error
-        die('PHPMailer files not found. Please download PHPMailer from https://github.com/PHPMailer/PHPMailer and place in php/PHPMailer/ folder');
-    }
+if (!file_exists($phpmailer_path . 'Exception.php')) {
+    $phpmailer_path = __DIR__ . '/../PHPMailer/src/';
+}
+if (!file_exists($phpmailer_path . 'Exception.php')) {
+    die('PHPMailer not found. Expected at php/PHPMailer/src/');
 }
 
-// Log function for debugging
-// function logDebug($message) {
-//     $logFile = __DIR__ . '/../email_debug.log';
-//     $timestamp = date('Y-m-d H:i:s');
-//     file_put_contents($logFile, "[$timestamp] $message\n", FILE_APPEND);
-// }
+require_once $phpmailer_path . 'Exception.php';
+require_once $phpmailer_path . 'PHPMailer.php';
+require_once $phpmailer_path . 'SMTP.php';
 
+function mail_debug_log($message) {
+    $logFile = __DIR__ . '/../email_debug.log';
+    $line = '[' . date('Y-m-d H:i:s') . "] $message\n";
+    @file_put_contents($logFile, $line, FILE_APPEND);
+}
+
+/**
+ * @return array{success:bool, message:string}
+ */
 function sendOTPEmail($to_email, $otp, $name = '') {
-    // Create a new PHPMailer instance
+    $to_email = trim((string) $to_email);
+    $otp = (string) $otp;
+    $name = trim((string) $name);
+    if ($name === '') {
+        $name = 'User';
+    }
+
+    $host = defined('MAIL_HOST') && MAIL_HOST !== '' ? MAIL_HOST : (defined('MAIL_SMTP_HOST') ? MAIL_SMTP_HOST : '');
+    $user = defined('MAIL_USERNAME') && MAIL_USERNAME !== '' ? MAIL_USERNAME : (defined('MAIL_SMTP_USER') ? MAIL_SMTP_USER : '');
+    $pass = defined('MAIL_PASSWORD') && MAIL_PASSWORD !== '' ? MAIL_PASSWORD : (defined('MAIL_SMTP_PASS') ? MAIL_SMTP_PASS : '');
+    $fromEmail = defined('MAIL_FROM_ADDRESS') && MAIL_FROM_ADDRESS !== '' ? MAIL_FROM_ADDRESS : (defined('MAIL_FROM_EMAIL') ? MAIL_FROM_EMAIL : '');
+    if ($fromEmail === '' && $user !== '') {
+        $fromEmail = $user;
+    }
+    $fromName = defined('MAIL_FROM_NAME') ? MAIL_FROM_NAME : 'PowerCabs';
+    $port = defined('MAIL_SMTP_PORT') ? (int) MAIL_SMTP_PORT : 587;
+
+    if ($host === '' || $user === '' || $pass === '' || $fromEmail === '') {
+        mail_debug_log('SMTP not configured (MAIL_HOST / MAIL_USERNAME / MAIL_PASSWORD / MAIL_FROM_ADDRESS); falling back to mail()');
+        return sendOTPSimple($to_email, $otp, $name);
+    }
+
     $mail = new PHPMailer(true);
-    
+
     try {
-        // Server settings for local development (use SMTP)
-        $mail->SMTPDebug = 2; // Enable verbose debug output (set to 0 in production)
-        $mail->Debugoutput = function($str, $level) {
-            logDebug("SMTP Debug level $level: $str");
-        };
-        
-        $mail->isSMTP();                                            // Send using SMTP
-        $mail->Host       = 'smtp.gmail.com';                       // For Gmail SMTP (use your email provider)
-        $mail->SMTPAuth   = true;                                   // Enable SMTP authentication
-        $mail->Username   = 'a.rehman@mindstremsoft.com';                 // Your Gmail address (use your actual email)
-        $mail->Password   = 'rehman@54321';                    // Your Gmail app password (not regular password)
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;         // Enable TLS encryption
-        $mail->Port       = 587;                                    // TCP port to connect to
-        
-        // For Hostinger, use these settings instead:
-        /*
-        $mail->Host       = 'smtp.hostinger.com';
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS; // SSL
-        $mail->Port       = 465;
-        */
-        
-        // Recipients
-        $mail->setFrom('a.rehman@mindstremsoft.com', 'PowerCabs');
-        $mail->addAddress($to_email, $name);                        // Add a recipient
-        
-        // Content
-        $mail->isHTML(true);                                        // Set email format to HTML
+        $mail->isSMTP();
+        $mail->Host = $host;
+        $mail->SMTPAuth = true;
+        $mail->Username = $user;
+        $mail->Password = $pass;
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = $port;
+        if ($mail->Port === 465) {
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+        }
+
+        $debug = defined('MAIL_SMTP_DEBUG') ? (int) MAIL_SMTP_DEBUG : 0;
+        $mail->SMTPDebug = $debug;
+        if ($debug > 0) {
+            $mail->Debugoutput = function ($str, $level) {
+                mail_debug_log("SMTP [$level] $str");
+            };
+        }
+
+        $mail->CharSet = 'UTF-8';
+        $mail->setFrom($fromEmail, $fromName);
+        $mail->addAddress($to_email, $name);
+
+        $mail->isHTML(true);
         $mail->Subject = 'Password Reset OTP - PowerCabs';
-        
-        // HTML email body
-        $mail->Body = "
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body { font-family: Arial, sans-serif; }
-                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .header { background-color: #f37a20; color: white; padding: 20px; text-align: center; }
-                .content { padding: 30px; background-color: #f9f9f9; }
-                .otp-box { background-color: white; padding: 20px; text-align: center; font-size: 32px; 
-                          font-weight: bold; color: #f37a20; letter-spacing: 5px; margin: 20px 0; 
-                          border-radius: 5px; border: 2px dashed #f37a20; }
-                .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-            </style>
-        </head>
-        <body>
-            <div class='container'>
-                <div class='header'>
-                    <h2>Password Reset Request</h2>
-                </div>
-                <div class='content'>
-                    <p>Hello " . htmlspecialchars($name ?: 'User') . ",</p>
-                    <p>We received a request to reset your password. Use the following OTP code:</p>
-                    
-                    <div class='otp-box'>
-                        <strong>" . $otp . "</strong>
-                    </div>
-                    
-                    <p>This OTP is valid for <strong>10 minutes</strong>.</p>
-                    <p>If you didn't request this, please ignore this email.</p>
-                    
-                    <p>Best regards,<br>
-                    <strong>PowerCabs Team</strong></p>
-                </div>
-                <div class='footer'>
-                    <p>&copy; 2024 PowerCabs. All rights reserved.</p>
-                </div>
-            </div>
-        </body>
-        </html>
-        ";
-        
-        // Plain text version
-        $mail->AltBody = "Your password reset OTP is: $otp\n\nThis OTP is valid for 10 minutes.\n\nIf you didn't request this, please ignore this email.";
-        
+        $safeName = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+        $safeOtp = htmlspecialchars($otp, ENT_QUOTES, 'UTF-8');
+
+        $mail->Body = <<<HTML
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background-color: #f37a20; color: white; padding: 20px; text-align: center; }
+    .content { padding: 30px; background-color: #f9f9f9; }
+    .otp-box { background-color: white; padding: 20px; text-align: center; font-size: 32px;
+      font-weight: bold; color: #f37a20; letter-spacing: 5px; margin: 20px 0;
+      border-radius: 5px; border: 2px dashed #f37a20; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header"><h2>Password Reset Request</h2></div>
+    <div class="content">
+      <p>Hello {$safeName},</p>
+      <p>We received a request to reset your password. Use the following OTP code:</p>
+      <div class="otp-box"><strong>{$safeOtp}</strong></div>
+      <p>This OTP is valid for <strong>10 minutes</strong>.</p>
+      <p>If you did not request this, please ignore this email.</p>
+      <p>Best regards,<br><strong>PowerCabs Team</strong></p>
+    </div>
+    <div class="footer"><p>&copy; PowerCabs</p></div>
+  </div>
+</body>
+</html>
+HTML;
+
+        $mail->AltBody = "Hello {$name},\n\nYour password reset OTP is: {$otp}\n\nValid for 10 minutes.\n\nIf you did not request this, ignore this email.";
+
         $mail->send();
-        logDebug("Email sent successfully to: $to_email");
+        mail_debug_log("OTP email sent OK to: $to_email");
         return ['success' => true, 'message' => 'OTP sent successfully'];
-        
-    } catch (Exception $e) {
-        logDebug("Email sending failed: {$mail->ErrorInfo}");
-        return ['success' => false, 'message' => "Mailer Error: {$mail->ErrorInfo}"];
+    } catch (MailException $e) {
+        $err = $mail->ErrorInfo;
+        mail_debug_log("PHPMailer error: $err");
+        $fallback = sendOTPSimple($to_email, $otp, $name);
+        if ($fallback['success']) {
+            return $fallback;
+        }
+        return ['success' => false, 'message' => $err];
+    } catch (Throwable $e) {
+        mail_debug_log('sendOTPEmail: ' . $e->getMessage());
+        return sendOTPSimple($to_email, $otp, $name);
     }
 }
 
-// Optional: If you want to use a simpler method without SMTP for local testing
+/**
+ * @return array{success:bool, message:string}
+ */
 function sendOTPSimple($to_email, $otp, $name = '') {
-    $subject = "Password Reset OTP - PowerCabs";
-    
-    $headers = "MIME-Version: 1.0" . "\r\n";
-    $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-    $headers .= 'From: PowerCabs <noreply@powercabs.com>' . "\r\n";
-    
-    $message = "
-    <html>
-    <body>
-        <h2 style='color: #f37a20;'>Password Reset OTP</h2>
-        <p>Hello $name,</p>
-        <p>Your OTP for password reset is:</p>
-        <div style='font-size: 24px; font-weight: bold; color: #f37a20; padding: 10px; border: 2px dashed #f37a20; text-align: center;'>
-            $otp
-        </div>
-        <p>This OTP is valid for 10 minutes.</p>
-    </body>
-    </html>
-    ";
-    
-    if (mail($to_email, $subject, $message, $headers)) {
-        return ['success' => true, 'message' => 'OTP sent via mail()'];
-    } else {
-        return ['success' => false, 'message' => 'Failed to send via mail()'];
+    $name = trim((string) $name);
+    if ($name === '') {
+        $name = 'User';
     }
+    $subject = 'Password Reset OTP - PowerCabs';
+    $headers = "MIME-Version: 1.0\r\n";
+    $headers .= "Content-type: text/html; charset=UTF-8\r\n";
+    $from = defined('MAIL_FROM_ADDRESS') && MAIL_FROM_ADDRESS !== ''
+        ? MAIL_FROM_ADDRESS
+        : (defined('MAIL_FROM_EMAIL') && MAIL_FROM_EMAIL !== '' ? MAIL_FROM_EMAIL : 'noreply@powercabs.com');
+    $fromName = defined('MAIL_FROM_NAME') ? MAIL_FROM_NAME : 'PowerCabs';
+    $headers .= 'From: ' . $fromName . " <{$from}>\r\n";
+
+    $safeOtp = htmlspecialchars($otp, ENT_QUOTES, 'UTF-8');
+    $safeName = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+    $message = "<html><body><h2 style=\"color:#f37a20\">Password Reset OTP</h2><p>Hello {$safeName},</p><p>Your code: <strong>{$safeOtp}</strong></p><p>Valid 10 minutes.</p></body></html>";
+
+    if (@mail($to_email, $subject, $message, $headers)) {
+        mail_debug_log("mail() fallback sent to: $to_email");
+        return ['success' => true, 'message' => 'Sent via mail()'];
+    }
+    mail_debug_log("mail() fallback failed for: $to_email");
+    return ['success' => false, 'message' => 'mail() failed'];
 }
-?>

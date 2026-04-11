@@ -10,7 +10,10 @@ class SupabaseClient {
         $this->apiKey = $serviceRole ? SUPABASE_SERVICE_ROLE_KEY : SUPABASE_ANON_KEY;
     }
 
-    private function request($method, $path, $query = [], $body = null, $extraHeaders = []) {
+    /**
+     * @param string $prefer Single Prefer: value (no "Prefer:" prefix), e.g. return=representation or return=minimal
+     */
+    private function request($method, $path, $query = [], $body = null, $prefer = 'return=representation', $extraHeaders = []) {
         $url = rtrim($this->baseUrl, '/') . $path;
         if (!empty($query)) {
             $url .= '?' . http_build_query($query);
@@ -20,7 +23,7 @@ class SupabaseClient {
             'apikey: ' . $this->apiKey,
             'Authorization: Bearer ' . $this->apiKey,
             'Content-Type: application/json',
-            'Prefer: return=representation'
+            'Prefer: ' . $prefer,
         ], $extraHeaders);
 
         $ch = curl_init($url);
@@ -82,7 +85,18 @@ class SupabaseClient {
         foreach ($filters as $column => $value) {
             $query[$column] = 'eq.' . $value;
         }
-        return $this->request('DELETE', '/rest/v1/' . $table, $query, null, ['Prefer: return=minimal']);
+        return $this->request('DELETE', '/rest/v1/' . $table, $query, null, 'return=minimal');
+    }
+
+    /**
+     * DELETE with PostgREST operator filters, e.g. ['expiry' => 'lt.2026-01-01T00:00:00Z']
+     */
+    public function deleteWithOperators($table, array $operatorFilters) {
+        $query = [];
+        foreach ($operatorFilters as $column => $condition) {
+            $query[$column] = $condition;
+        }
+        return $this->request('DELETE', '/rest/v1/' . $table, $query, null, 'return=minimal');
     }
 }
 
