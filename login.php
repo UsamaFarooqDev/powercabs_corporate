@@ -1,5 +1,8 @@
 <?php
 session_start();
+$flashSuccess = $_SESSION['success'] ?? '';
+$flashError   = $_SESSION['error']   ?? '';
+unset($_SESSION['success'], $_SESSION['error']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -155,6 +158,9 @@ session_start();
             </button>
           </div>
         </div>
+         <div class="mb-3 text-end">
+                            <a href="forgot-password.php" style="font-weight: 400; color:#f37a20; text-decoration:none;">Forgot Password?</a>
+                        </div>
 
         <button type="submit" id="btnSignIn" class="btn btn-signin w-100 text-white fw-semibold py-2 d-flex align-items-center justify-content-center gap-2 mt-3" style="font-size:.95rem; border-radius:8px;">
           Sign In <i style="font-size:.75rem;" class="bi bi-chevron-right"></i>
@@ -403,6 +409,14 @@ session_start();
     input.type  = show ? 'text' : 'password';
     icon.className = show ? 'bi bi-eye' : 'bi bi-eye-slash';
   });
+
+  /* Flash messages from PHP session (e.g. after password reset) */
+  <?php if ($flashSuccess): ?>
+    showToast(<?= json_encode(strip_tags($flashSuccess)) ?>, 'success');
+  <?php endif; ?>
+  <?php if ($flashError): ?>
+    showToast(<?= json_encode(strip_tags($flashError)) ?>, 'error');
+  <?php endif; ?>
 
   /* Auto-redirect if already logged in */
   (async () => {
