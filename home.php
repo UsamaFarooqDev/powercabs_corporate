@@ -180,7 +180,18 @@ try {
                 <td><?= htmlspecialchars($r['employee'] ?? '') ?></td>
                 <td><?= htmlspecialchars($r['pickup'] ?? '') ?></td>
                 <td><?= htmlspecialchars($r['destination'] ?? '') ?></td>
-                <td><?= htmlspecialchars($r['pickupTime'] ?? '') ?></td>
+                <td style="white-space:nowrap">
+                  <?php
+                    $pt = $r['pickupTime'] ?? '';
+                    $ts = $pt ? strtotime($pt) : false;
+                  ?>
+                  <?php if ($ts): ?>
+                    <div style="color:#111827;line-height:1.2;"><?= date('d-m-y', $ts) ?></div>
+                    <div style="font-size:var(--fs-label);color:#6b7280;line-height:1.2;margin-top:2px;"><?= date('h:i A', $ts) ?></div>
+                  <?php else: ?>
+                    <?= htmlspecialchars($pt) ?>
+                  <?php endif; ?>
+                </td>
                 <td><?= htmlspecialchars($r['vehicle_number'] ?? 'N/A') ?></td>
                 <td>€<?= htmlspecialchars($r['fare'] ?? '0') ?></td>
                 <td><span class="badge-status <?= $badgeClass ?>" title="<?= htmlspecialchars($status) ?>"><i class="bi <?= $badgeIcon ?>"></i></span></td>

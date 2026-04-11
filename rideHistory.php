@@ -86,6 +86,10 @@ foreach ($rides as $r) {
 
     /* ── Location cell truncation ── */
     .rh-loc { max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ── Date & Time cell ── */
+    .rh-dt-date { color: #111827; line-height: 1.2; }
+    .rh-dt-time { font-size: var(--fs-label); color: #6b7280; line-height: 1.2; margin-top: 2px; }
   </style>
 </head>
 <body>
@@ -205,7 +209,18 @@ foreach ($rides as $r) {
                 <td><?= htmlspecialchars($r['employee']    ?? '') ?></td>
                 <td><span class="rh-loc" title="<?= htmlspecialchars($r['pickup'] ?? '') ?>"><?= htmlspecialchars($r['pickup'] ?? '') ?></span></td>
                 <td><span class="rh-loc" title="<?= htmlspecialchars($r['destination'] ?? '') ?>"><?= htmlspecialchars($r['destination'] ?? '') ?></span></td>
-                <td style="white-space:nowrap"><?= htmlspecialchars($r['pickupTime'] ?? '') ?></td>
+                <td style="white-space:nowrap">
+                  <?php
+                    $pt = $r['pickupTime'] ?? '';
+                    $ts = $pt ? strtotime($pt) : false;
+                  ?>
+                  <?php if ($ts): ?>
+                    <div class="rh-dt-date"><?= date('d-m-y', $ts) ?></div>
+                    <div class="rh-dt-time"><?= date('h:i A', $ts) ?></div>
+                  <?php else: ?>
+                    <?= htmlspecialchars($pt) ?>
+                  <?php endif; ?>
+                </td>
                 <td><?= htmlspecialchars($r['vehicle_number'] ?? 'N/A') ?></td>
                 <td>€<?= htmlspecialchars($r['fare'] ?? '0') ?></td>
                 <td><span class="badge-status <?= $badgeClass ?>" title="<?= htmlspecialchars($status) ?>"><i class="bi <?= $badgeIcon ?>"></i></span></td>

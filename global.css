@@ -23,7 +23,7 @@ html, body {
   object-fit: cover;
 }
 .sidebar {
-  width: 220px;
+  width: 250px;
   height: 100vh;
   position: fixed;
   left: 0;
@@ -41,13 +41,13 @@ html, body {
 .sn-navbar {
   position: fixed !important;
   top: 0;
-  left: 220px;
+  left: 250px;
   right: 0;
   z-index: 1030;
 }
 
 .main-content {
-  margin-left: 220px;
+  margin-left: 250px;
   margin-top: 52px; /* push below fixed navbar */
   transition: margin 0.3s ease;
 }
@@ -111,7 +111,7 @@ html, body {
 }
 @media (min-width: 768px) {
   .ms-lg-230 {
-    margin-left: 230px !important;
+    margin-left: 260px !important;
   }
 }
 .form-check-input {

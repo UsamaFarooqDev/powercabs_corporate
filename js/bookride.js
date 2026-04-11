@@ -307,6 +307,38 @@ function setupFormListeners() {
 
 // ==== FORM SUBMISSION ====
 
+function setBookBtnLoading(isLoading) {
+  const btn = document.getElementById('bookRideBtn');
+  if (!btn) return;
+  if (isLoading) {
+    btn.disabled = true;
+    btn.dataset.originalHtml = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Booking ride…';
+  } else {
+    btn.disabled = false;
+    if (btn.dataset.originalHtml) {
+      btn.innerHTML = btn.dataset.originalHtml;
+    }
+  }
+}
+
+function resetRideForm() {
+  const form = document.getElementById('rideForm');
+  if (!form) return;
+  form.reset();
+  // Hidden fields & computed values
+  const employeeName = document.getElementById('employeeName');
+  if (employeeName) employeeName.value = '';
+  const summary = document.getElementById('rideSummaryBar');
+  if (summary) summary.classList.add('d-none');
+  ['summaryFare','summaryDuration','summaryDistance'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '0';
+  });
+  // Clear autocomplete session route state if used
+  window.__rideRouteCache = null;
+}
+
 function validateAndSubmitForm() {
   console.log('[RideScript] validateAndSubmitForm()');
 
@@ -344,6 +376,8 @@ function validateAndSubmitForm() {
 
   console.log('[RideScript] Sending rideData:', rideData);
 
+  setBookBtnLoading(true);
+
   fetch(new URL('php/save_ride.php', window.location.href).href, {
     method: 'POST',
     credentials: 'same-origin',
@@ -353,6 +387,7 @@ function validateAndSubmitForm() {
     .then(response => response.json())
     .then(data => {
       console.log('[RideScript] Server response:', data);
+      setBookBtnLoading(false);
       if (data.success) {
         notifyDashboardAndRideHistoryUpdated();
         const successModal = new bootstrap.Modal(document.getElementById('successModal'));
@@ -363,6 +398,15 @@ function validateAndSubmitForm() {
     })
     .catch(error => {
       console.error('[RideScript] fetch error:', error);
+      setBookBtnLoading(false);
       showToast('Failed to save ride. Please try again.', 'error');
     });
 }
+
+// Reset the form when the "Book Another" button (inside success modal) is clicked
+document.addEventListener('DOMContentLoaded', () => {
+  const successModalEl = document.getElementById('successModal');
+  if (successModalEl) {
+    successModalEl.addEventListener('hidden.bs.modal', resetRideForm);
+  }
+});

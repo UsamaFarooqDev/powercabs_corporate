@@ -1,6 +1,6 @@
 <?php
 $sidebarLinks = [
-  ['href' => 'home.php',        'icon' => 'bi-house-door-fill',  'label' => 'Dashboard',     'match' => 'Dashboard'],
+  ['href' => 'home.php',        'icon' => 'bi-house-door-fill',  'label' => 'Home',     'match' => 'Dashboard'],
   ['href' => 'employee.php',    'icon' => 'bi-people-fill',      'label' => 'Employees',     'match' => 'Employee Directory'],
   ['href' => 'rideHistory.php', 'icon' => 'bi-clock-history',    'label' => 'Rides History',  'match' => 'Ride History'],
 ];
@@ -13,12 +13,10 @@ $currentPage = $pageTitle ?? '';
 
 <div class="d-flex flex-column h-100 px-1 py-3">
 
-  <div class="d-flex justify-content-center align-items-center mb-4 px-1" style="height:52px">
+  <div class="d-flex justify-content-center align-items-center mb-4 px-1" style="height:48px; width:100%">
     <img
       src="assets/powercabs-logo.svg"
       alt="Navigation Logo"
-      class="img-fluid"
-      style="max-height:56px"
     />
   </div>
 

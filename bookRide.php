@@ -241,7 +241,7 @@ try {
                   <i class="bi bi-clock-history me-1"></i>View Past Rides
                 </a>
                 <button type="button" class="btn-book" id="bookRideBtn">
-                  Book Ride <i class="bi bi-arrow-right ms-1"></i>
+                  <span class="btn-label">Book Ride <i class="bi bi-chevron-right ms-1" style="font-size:.75rem;"></i></span>
                 </button>
               </div>
 

@@ -323,6 +323,17 @@ $initials  = strtoupper(count($nameParts) >= 2
         && !e.target.closest('#sidebarToggle'))
         document.querySelector('.sidebar')?.classList.remove('active');
     });
+
+    // Submit loaders for modal forms
+    document.querySelectorAll('form').forEach(form => {
+      form.addEventListener('submit', function (e) {
+        if (!this.checkValidity()) return;
+        const btn = this.querySelector('button[type="submit"]');
+        if (!btn || btn.disabled) return;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Saving…';
+      });
+    });
   </script>
 
 </body>

@@ -273,23 +273,42 @@ try {
         document.querySelector('.sidebar')?.classList.remove('active');
     });
 
+    // ── Helper: toggle loader on a button ──
+    function setBtnLoading(btn, loading, loadingText) {
+      if (!btn) return;
+      if (loading) {
+        btn.disabled = true;
+        btn.dataset.originalHtml = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>' + (loadingText || 'Please wait…');
+      } else {
+        btn.disabled = false;
+        if (btn.dataset.originalHtml) btn.innerHTML = btn.dataset.originalHtml;
+      }
+    }
+
     // ── Helper: submit a FormData via fetch and show toast ──
-    function postForm(url, formData, modalEl) {
+    function postForm(url, formData, modalEl, submitBtn, loadingText) {
+      setBtnLoading(submitBtn, true, loadingText);
       return fetch(url, { method: 'POST', body: formData })
         .then(r => r.json())
         .then(data => {
+          setBtnLoading(submitBtn, false);
           bootstrap.Modal.getInstance(modalEl)?.hide();
           showToast(data.message, data.success ? 'success' : 'error');
           if (data.success) setTimeout(() => location.reload(), 1200);
         })
-        .catch(() => showToast('Network error. Please try again.', 'error'));
+        .catch(() => {
+          setBtnLoading(submitBtn, false);
+          showToast('Network error. Please try again.', 'error');
+        });
     }
 
     // ── Add Employee ──
     document.getElementById('addEmployeeForm').addEventListener('submit', function (e) {
       e.preventDefault();
       const fd = new FormData(this);
-      postForm('php/addemployee.php', fd, document.getElementById('addEmployeeModal'));
+      const btn = this.querySelector('button[type="submit"]');
+      postForm('php/addemployee.php', fd, document.getElementById('addEmployeeModal'), btn, 'Adding…');
     });
 
     // ── Edit Employee (one listener per modal, delegated by form id) ──
@@ -299,7 +318,8 @@ try {
         const eid = this.dataset.employeeId;
         const fd  = new FormData(this);
         fd.append('employee_id', eid);
-        postForm('php/editemployee.php', fd, document.getElementById('editEmployeeModal' + eid));
+        const btn = this.querySelector('button[type="submit"]');
+        postForm('php/editemployee.php', fd, document.getElementById('editEmployeeModal' + eid), btn, 'Saving…');
       });
     });
 
@@ -309,7 +329,7 @@ try {
         const eid = this.dataset.employeeId;
         const fd  = new FormData();
         fd.append('id', eid);
-        postForm('php/deleteemployee.php', fd, document.getElementById('deleteEmployeeModal' + eid));
+        postForm('php/deleteemployee.php', fd, document.getElementById('deleteEmployeeModal' + eid), this, 'Removing…');
       });
     });
   </script>
