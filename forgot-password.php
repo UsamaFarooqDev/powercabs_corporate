@@ -224,13 +224,19 @@ unset($_SESSION['error'], $_SESSION['success']);
           <button type="submit" id="btnSubmit" class="btn btn-signin w-100 text-white fw-semibold py-2 d-flex align-items-center justify-content-center gap-2 mt-3" style="font-size:.95rem; border-radius:8px;">
             Verify code <i style="font-size:.75rem;" class="bi bi-chevron-right"></i>
           </button>
-
-          <div class="text-center mt-3">
-            <a href="forgot-password.php" class="text-decoration-none" style="font-size:.88rem; color:#6b7280;">
-              <i class="bi bi-arrow-left me-1"></i>Use a different email
-            </a>
-          </div>
         </form>
+
+        <div class="text-center mt-3 d-flex flex-column gap-2 align-items-center">
+          <form action="php/resend-otp.php" method="POST" class="d-inline" id="resendOtpForm">
+            <input type="hidden" name="email" value="<?= htmlspecialchars($email) ?>"/>
+            <button type="submit" id="btnResendOtp" class="btn btn-link text-decoration-none p-0 border-0" style="font-size:.88rem; color:var(--orange);">
+              <i class="bi bi-arrow-clockwise me-1"></i><span id="resendOtpLabel">Resend code</span>
+            </button>
+          </form>
+          <a href="forgot-password.php" class="text-decoration-none" style="font-size:.88rem; color:#6b7280;">
+            <i class="bi bi-arrow-left me-1"></i>Use a different email
+          </a>
+        </div>
 
       <?php else: ?>
         <!-- ── STEP 3: Reset password ── -->
@@ -390,6 +396,37 @@ unset($_SESSION['error'], $_SESSION['success']);
     });
   }
 
+  /* Resend OTP: cooldown (45s) after each successful resend */
+  <?php if ($step === 'otp' && $email !== ''): ?>
+  (function () {
+    const btn = document.getElementById('btnResendOtp');
+    const label = document.getElementById('resendOtpLabel');
+    if (!btn || !label) return;
+    const email = <?= json_encode($email) ?>;
+    const key = 'resendOtpUntil:' + email;
+    const COOLDOWN_MS = 45000;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('rc') === '1') {
+      sessionStorage.setItem(key, String(Date.now() + COOLDOWN_MS));
+      url.searchParams.delete('rc');
+      history.replaceState({}, '', url.pathname + url.search + url.hash);
+    }
+    function tick() {
+      const until = parseInt(sessionStorage.getItem(key) || '0', 10);
+      const left = until - Date.now();
+      if (left <= 0) {
+        btn.disabled = false;
+        label.textContent = 'Resend code';
+        return;
+      }
+      btn.disabled = true;
+      label.textContent = 'Resend in ' + Math.ceil(left / 1000) + 's';
+      setTimeout(tick, 400);
+    }
+    tick();
+  })();
+  <?php endif; ?>
+
   /* Reset password: match check */
   const resetForm = document.getElementById('resetForm');
   if (resetForm) {
@@ -414,6 +451,11 @@ unset($_SESSION['error'], $_SESSION['success']);
     form.addEventListener('submit', (e) => {
       const btn = form.querySelector('button[type="submit"]');
       if (!btn || btn.disabled) return;
+      if (form.id === 'resendOtpForm') {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Sending…';
+        return;
+      }
       // Let native validation stop it if invalid
       if (!form.checkValidity()) return;
       btn.disabled = true;

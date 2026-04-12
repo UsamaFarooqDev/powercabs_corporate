@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once __DIR__ . '/../auth/supabase.php';
+require_once __DIR__ . '/password_reset_otp.inc.php';
 
 // Enable error reporting for debugging
 error_reporting(E_ALL);
@@ -21,6 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     try {
     $supabase = new SupabaseClient(true);
+    pr_cleanup_expired_password_resets($supabase);
+
     $records = $supabase->select('password_resets', ['email' => $email], '*', 'created_at.desc', 1);
     if (!empty($records)) {
         $stored_data = $records[0];
@@ -48,15 +51,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } else {
         logDebug("Invalid or expired OTP for email: $email");
 
-        $expired = false;
-        if (!empty($records)) {
+        if (empty($records)) {
+            $_SESSION['error'] = 'No verification code on file. Use “Resend code” to get a new one.';
+        } else {
+            $expired = false;
             $row = $records[0];
             $expired = (($row['otp'] ?? '') === $entered_otp) && (strtotime($row['expiry'] ?? '') <= time());
-        }
-        if ($expired) {
-            $_SESSION['error'] = "OTP has expired. Please request a new one.";
-        } else {
-            $_SESSION['error'] = "Invalid OTP. Please try again.";
+            if ($expired) {
+                $_SESSION['error'] = 'OTP has expired. Use “Resend code” to get a new one.';
+            } else {
+                $_SESSION['error'] = 'Invalid OTP. Please try again.';
+            }
         }
         
         header("Location: ../forgot-password.php?step=otp&email=" . urlencode($email));
