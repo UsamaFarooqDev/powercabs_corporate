@@ -56,6 +56,5 @@ try {
 
     echo json_encode(['success' => true, 'message' => 'Employee added successfully.']);
 } catch (Throwable $e) {
-    error_log('addemployee.php: ' . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Error adding employee.']);
 }

@@ -39,7 +39,6 @@ try {
     header('Location: ../home.php');
     exit;
 } catch (Throwable $e) {
-    error_log('Corporate php/login.php error: ' . $e->getMessage());
     $_SESSION['error'] = 'Login failed.';
     header('Location: ../login.php');
     exit;

@@ -51,7 +51,6 @@ try {
     $_SESSION['user']['name'] = $name;
     $_SESSION['success'] = 'Profile updated successfully.';
 } catch (Throwable $e) {
-    error_log('update_profile.php: ' . $e->getMessage());
     $_SESSION['error'] = 'Error updating profile.';
 }
 

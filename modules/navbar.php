@@ -1,5 +1,8 @@
 <?php
 $pageTitle = $pageTitle ?? 'Dashboard';
+// Inject favicon into <head> from this shared include
+echo '<script>if(!document.querySelector("link[rel=icon]")){var l=document.createElement("link");l.rel="icon";l.href="favicon.ico";l.type="image/x-icon";document.head.appendChild(l);}</script>';
+
 
 session_start_once:
 if (session_status() === PHP_SESSION_NONE) session_start();

@@ -27,7 +27,7 @@ try {
         $row['address'] = trim((string)($dbRow['address'] ?? $dbRow['Address'] ?? ''));
     }
 } catch (Throwable $e) {
-    error_log('profile.php corporate fetch: ' . $e->getMessage());
+    // silently ignore
 }
 
 // Initials for avatar

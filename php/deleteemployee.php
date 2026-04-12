@@ -26,6 +26,5 @@ try {
     $supabase->delete('corporate_employees', ['id' => $employee_id]);
     echo json_encode(['success' => true, 'message' => 'Employee removed successfully.']);
 } catch (Throwable $e) {
-    error_log('deleteemployee.php: ' . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Error removing employee.']);
 }

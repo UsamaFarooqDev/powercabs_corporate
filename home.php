@@ -29,13 +29,13 @@ try {
     $empRows   = $supabase->select('corporate_employees', ['cid' => $cid], '*');
     $employees = count($empRows);
   } catch (Throwable $empErr) {
-    error_log('home.php employee count error: ' . $empErr->getMessage());
+    // silently ignore
     $employees = 0;
   }
 } catch (Throwable $e) {
   $rides = [];
   $ridesFetchError = $e->getMessage();
-  error_log('home.php rides fetch error: ' . $ridesFetchError);
+  // silently ignore
 }
 ?>
 <!DOCTYPE html>

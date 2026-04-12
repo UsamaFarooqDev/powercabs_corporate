@@ -145,13 +145,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
     if (curl_errno($ch)) {
-        error_log('Telesign cURL error: ' . curl_error($ch));
+        // cURL error — silently ignore
     }
 
 
     echo json_encode(['success' => true, 'message' => 'Ride booked successfully. Dispatcher notified via WhatsApp.']);
     } catch (Throwable $e) {
-      error_log('save_ride.php error: ' . $e->getMessage());
       echo json_encode([
         'success' => false,
         'message' => mapSupabaseErrorToUserMessage($e),

@@ -9,6 +9,7 @@ unset($_SESSION['success'], $_SESSION['error']);
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="icon" href="favicon.ico" type="image/x-icon"/>
   <title>PowerCabs Corporate — Sign In</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
@@ -146,7 +147,7 @@ unset($_SESSION['success'], $_SESSION['error']);
                  placeholder="yourcompany@example.com" required/>
         </div>
 
-        <div class="mb-3">
+        <div>
           <label for="password" class="form-label fw-semibold text-uppercase" style="font-size:.8rem; letter-spacing:.05em; color:#374151;">Password</label>
           <div class="position-relative">
             <input type="password" name="password" id="password"
@@ -159,7 +160,7 @@ unset($_SESSION['success'], $_SESSION['error']);
           </div>
         </div>
          <div class="mb-3 text-end">
-                            <a href="forgot-password.php" style="font-weight: 400; color:#f37a20; text-decoration:none;">Forgot Password?</a>
+                            <a href="forgot-password.php" style="font-weight: 500; font-size:.9rem; color:#f37a20; text-decoration:none;">Forgot Password?</a>
                         </div>
 
         <button type="submit" id="btnSignIn" class="btn btn-signin w-100 text-white fw-semibold py-2 d-flex align-items-center justify-content-center gap-2 mt-3" style="font-size:.95rem; border-radius:8px;">

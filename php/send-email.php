@@ -20,12 +20,6 @@ require_once $phpmailer_path . 'Exception.php';
 require_once $phpmailer_path . 'PHPMailer.php';
 require_once $phpmailer_path . 'SMTP.php';
 
-function mail_debug_log($message) {
-    $logFile = __DIR__ . '/../email_debug.log';
-    $line = '[' . date('Y-m-d H:i:s') . "] $message\n";
-    @file_put_contents($logFile, $line, FILE_APPEND);
-}
-
 /**
  * @return array{success:bool, message:string}
  */
@@ -48,7 +42,6 @@ function sendOTPEmail($to_email, $otp, $name = '') {
     $port = defined('MAIL_SMTP_PORT') ? (int) MAIL_SMTP_PORT : 587;
 
     if ($host === '' || $user === '' || $pass === '' || $fromEmail === '') {
-        mail_debug_log('SMTP not configured (MAIL_HOST / MAIL_USERNAME / MAIL_PASSWORD / MAIL_FROM_ADDRESS); falling back to mail()');
         return sendOTPSimple($to_email, $otp, $name);
     }
 
@@ -69,9 +62,7 @@ function sendOTPEmail($to_email, $otp, $name = '') {
         $debug = defined('MAIL_SMTP_DEBUG') ? (int) MAIL_SMTP_DEBUG : 0;
         $mail->SMTPDebug = $debug;
         if ($debug > 0) {
-            $mail->Debugoutput = function ($str, $level) {
-                mail_debug_log("SMTP [$level] $str");
-            };
+            $mail->Debugoutput = 'error_log';
         }
 
         $mail->CharSet = 'UTF-8';
@@ -119,18 +110,15 @@ HTML;
         $mail->AltBody = "Hello {$name},\n\nYour password reset OTP is: {$otp}\n\nValid for 10 minutes.\n\nIf you did not request this, ignore this email.";
 
         $mail->send();
-        mail_debug_log("OTP email sent OK to: $to_email");
         return ['success' => true, 'message' => 'OTP sent successfully'];
     } catch (MailException $e) {
         $err = $mail->ErrorInfo;
-        mail_debug_log("PHPMailer error: $err");
         $fallback = sendOTPSimple($to_email, $otp, $name);
         if ($fallback['success']) {
             return $fallback;
         }
         return ['success' => false, 'message' => $err];
     } catch (Throwable $e) {
-        mail_debug_log('sendOTPEmail: ' . $e->getMessage());
         return sendOTPSimple($to_email, $otp, $name);
     }
 }
@@ -157,9 +145,7 @@ function sendOTPSimple($to_email, $otp, $name = '') {
     $message = "<html><body><h2 style=\"color:#f37a20\">Password Reset OTP</h2><p>Hello {$safeName},</p><p>Your code: <strong>{$safeOtp}</strong></p><p>Valid 10 minutes.</p></body></html>";
 
     if (@mail($to_email, $subject, $message, $headers)) {
-        mail_debug_log("mail() fallback sent to: $to_email");
         return ['success' => true, 'message' => 'Sent via mail()'];
     }
-    mail_debug_log("mail() fallback failed for: $to_email");
     return ['success' => false, 'message' => 'mail() failed'];
 }

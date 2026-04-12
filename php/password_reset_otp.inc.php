@@ -66,11 +66,7 @@ function pr_issue_password_reset_otp(SupabaseClient $supabase, $email) {
         'expiry' => $expiry,
     ]);
 
-    $send = sendOTPEmail($email, $otp, $greetingName);
-    if (empty($send['success'])) {
-        $line = '[' . date('Y-m-d H:i:s') . "] OTP email not delivered to {$email}: " . ($send['message'] ?? '') . "\n";
-        @file_put_contents(__DIR__ . '/../otp_debug.log', $line, FILE_APPEND);
-    }
+    sendOTPEmail($email, $otp, $greetingName);
 
     return ['ok' => true, 'otp' => $otp];
 }

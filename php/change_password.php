@@ -61,7 +61,6 @@ try {
     $supabase->update('corporate', $rowFilter, ['pass' => $hashedPassword]);
     $_SESSION['success'] = 'Password updated successfully.';
 } catch (Throwable $e) {
-    error_log('change_password.php: ' . $e->getMessage());
     $_SESSION['error'] = 'Failed to update password.';
 }
 

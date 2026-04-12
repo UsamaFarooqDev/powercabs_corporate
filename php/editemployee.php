@@ -35,6 +35,5 @@ try {
     ]);
     echo json_encode(['success' => true, 'message' => 'Employee updated successfully.']);
 } catch (Throwable $e) {
-    error_log('editemployee.php: ' . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Error updating employee.']);
 }

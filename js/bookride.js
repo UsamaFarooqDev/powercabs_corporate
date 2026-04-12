@@ -27,7 +27,6 @@ function notifyDashboardAndRideHistoryUpdated() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-  console.log('[RideScript] DOMContentLoaded fired');
   setupFormListeners();
   setDefaultPickupTime();
 });
@@ -58,14 +57,10 @@ function formatDateTimeLocalValue(d) {
 }
 
 function setDefaultPickupTime() {
-  console.log('[RideScript] Setting default pickup time');
   const now = new Date();
   now.setMinutes(now.getMinutes() + 30);
   const elem = document.getElementById('pickupTime');
-  if (!elem) {
-    console.error('[RideScript] #pickupTime not found');
-    return;
-  }
+  if (!elem) return;
   elem.value = formatDateTimeLocalValue(now);
 }
 
@@ -80,16 +75,12 @@ function buildPickupDateTimeForFare() {
 }
 
 function initMap() {
-  console.log('[RideScript] initMap()');
   const mapFrame = document.getElementById('mapFrame');
   // bookRide.php uses .br-map; older layout used .map-container
   const mapContainer =
     document.querySelector('.map-container') ||
     (mapFrame && mapFrame.parentElement);
-  if (!mapContainer || !mapFrame) {
-    console.error('[RideScript] map wrapper or #mapFrame not found in DOM');
-    return;
-  }
+  if (!mapContainer || !mapFrame) return;
 
   const mapDiv = document.createElement('div');
   mapDiv.id = 'map';
@@ -98,10 +89,7 @@ function initMap() {
   mapDiv.style.borderRadius = '8px';
   mapContainer.replaceChild(mapDiv, mapFrame);
 
-  if (typeof google === 'undefined' || !google.maps) {
-    console.error('[RideScript] google.maps is undefined—Maps API probably not loaded');
-    return;
-  }
+  if (typeof google === 'undefined' || !google.maps) return;
 
   map = new google.maps.Map(mapDiv, {
     center: { lat: 53.349805, lng: -6.26031 },
@@ -112,18 +100,10 @@ function initMap() {
 }
 
 function initAutocomplete() {
-  console.log('[RideScript] initAutocomplete()');
   const pickupInput = document.getElementById('pickup');
   const dropoffInput = document.getElementById('dropoff');
-  if (!pickupInput || !dropoffInput) {
-    console.error('[RideScript] #pickup or #dropoff input not found');
-    return;
-  }
-
-  if (!google || !google.maps || !google.maps.places) {
-    console.error('[RideScript] google.maps.places not available');
-    return;
-  }
+  if (!pickupInput || !dropoffInput) return;
+  if (!google || !google.maps || !google.maps.places) return;
 
   // Match pw_dispatcher/order.php (no Autocomplete options — same Places behavior)
   pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput);
@@ -152,16 +132,13 @@ function initAutocomplete() {
 }
 
 function calculateDistanceAndFare() {
-  console.log('[RideScript] calculateDistanceAndFare()');
-  if (!mapsReady || !directionsService || !directionsRenderer) {
-    return;
-  }
+  if (!mapsReady || !directionsService || !directionsRenderer) return;
+
   const pickup = document.getElementById('pickup')?.value;
   const dropoff = document.getElementById('dropoff')?.value;
   const pickupTime = document.getElementById('pickupTime')?.value;
 
   if (!pickup || !dropoff || !pickupTime?.trim()) {
-    console.log('[RideScript] Missing one of pickup/dropoff/pickupTime');
     currentDistanceKm = null;
     currentDurationMin = null;
     return;
@@ -175,7 +152,6 @@ function calculateDistanceAndFare() {
 
   directionsService.route(request, function (result, status) {
     if (status === google.maps.DirectionsStatus.OK) {
-      console.log('[RideScript] Directions result OK');
       directionsRenderer.setDirections(result);
       const leg = result.routes[0].legs[0];
       const distanceInKm = leg.distance.value / 1000;
@@ -193,17 +169,13 @@ function calculateDistanceAndFare() {
       const summaryDuration = document.getElementById('summaryDuration');
       const summaryDistance = document.getElementById('summaryDistance');
 
-      if (!summaryBar || !summaryFare || !summaryDuration || !summaryDistance) {
-        console.error('[RideScript] One of #rideSummaryBar, #summaryFare, #summaryDuration, or #summaryDistance not found');
-        return;
-      }
+      if (!summaryBar || !summaryFare || !summaryDuration || !summaryDistance) return;
 
       summaryFare.textContent = fareAmount.toFixed(2);
       summaryDuration.textContent = durationInMin;
       summaryDistance.textContent = distanceInKm.toFixed(2);
       summaryBar.classList.remove('d-none');
     } else {
-      console.error('[RideScript] DirectionsService failed:', status);
       currentDistanceKm = null;
       currentDurationMin = null;
     }
@@ -248,13 +220,11 @@ function calculateFare(distanceKm, durationMin, pickupTimeStr, rideType) {
 }
 
 function recalculateFareForCurrentRoute() {
-  if (currentDistanceKm == null || currentDurationMin == null) {
-    return;
-  }
+  if (currentDistanceKm == null || currentDurationMin == null) return;
+
   const pickupTimeStr = document.getElementById('pickupTime')?.value?.trim();
-  if (!pickupTimeStr) {
-    return;
-  }
+  if (!pickupTimeStr) return;
+
   const carType = document.getElementById('carType')?.value || 'Economy';
   const fareAmount = calculateFare(
     currentDistanceKm,
@@ -269,7 +239,6 @@ function recalculateFareForCurrentRoute() {
 }
 
 function setupFormListeners() {
-  console.log('[RideScript] setupFormListeners()');
   const pickupInput = document.getElementById('pickup');
   const dropoffInput = document.getElementById('dropoff');
   const pickupTimeInput = document.getElementById('pickupTime');
@@ -340,8 +309,6 @@ function resetRideForm() {
 }
 
 function validateAndSubmitForm() {
-  console.log('[RideScript] validateAndSubmitForm()');
-
   const employee_id = document.getElementById('employee')?.value;
   const employee_name = document.getElementById('employeeName')?.value;
   const pickup = document.getElementById('pickup')?.value;
@@ -374,8 +341,6 @@ function validateAndSubmitForm() {
     fare: parseFloat(fareText) || 0,
   };
 
-  console.log('[RideScript] Sending rideData:', rideData);
-
   setBookBtnLoading(true);
 
   fetch(new URL('php/save_ride.php', window.location.href).href, {
@@ -386,7 +351,6 @@ function validateAndSubmitForm() {
   })
     .then(response => response.json())
     .then(data => {
-      console.log('[RideScript] Server response:', data);
       setBookBtnLoading(false);
       if (data.success) {
         notifyDashboardAndRideHistoryUpdated();
@@ -396,8 +360,7 @@ function validateAndSubmitForm() {
         showToast(data.message || 'Could not save your ride. Please try again.', 'error');
       }
     })
-    .catch(error => {
-      console.error('[RideScript] fetch error:', error);
+    .catch(() => {
       setBookBtnLoading(false);
       showToast('Failed to save ride. Please try again.', 'error');
     });
