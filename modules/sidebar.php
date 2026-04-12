@@ -1,89 +1,47 @@
-<div class="d-flex flex-column h-100">
-        <div
-          class="sidebar-header mb-10 d-flex justify-content-center align-items-center"
-          style="height: 60px"
-        >
-          <img
-            src="assets/powercabs-logo.svg"
-            alt="Navigation Logo"
-            class="img-fluid"
-            style="max-height: 75px"
-          />
-        </div>
+<?php
+$sidebarLinks = [
+  ['href' => 'home.php',        'icon' => 'bi-house-door-fill',  'label' => 'Home',     'match' => 'Dashboard'],
+  ['href' => 'employee.php',    'icon' => 'bi-people-fill',      'label' => 'Employees',     'match' => 'Employee Directory'],
+  ['href' => 'rideHistory.php', 'icon' => 'bi-clock-history',    'label' => 'Rides History',  'match' => 'Ride History'],
+];
+$currentPage = $pageTitle ?? '';
+?>
+<style>
+  .sn-nav-link:hover { background: rgba(255,255,255,.08) !important; }
+  .sn-nav-link.active { background: rgba(243,122,32,.18) !important; font-weight: 600; border-left: 3px solid #f37a20; }
+</style>
 
-        <ul class="nav nav-pills flex-column mt-4">
-          <li class="nav-item mb-3">
-            <a
-              href="home.php"
-              class="nav-link fw-normal text-white"
-              style="font-size: 18px"
-            >
-              <i
-                class="bi bi-house-door-fill me-2"
-                style="font-size: 1.2rem"
-              ></i>
-              Dashboard
-            </a>
-          </li>
-          <li class="nav-item mb-3 fw-normal">
-            <a
-              href="employee.php"
-              class="nav-link text-white"
-              style="font-size: 18px"
-            >
-              <i class="bi bi-people-fill me-2" style="font-size: 1.2rem"></i>
-              Employees
-            </a>
-          </li>
-          <li class="nav-item mb-3 fw-normal">
-            <a
-              href="rideHistory.php"
-              class="nav-link text-white"
-              style="font-size: 18px"
-            >
-              <i class="bi bi-clock-history me-2" style="font-size: 1.2rem"></i>
-              Rides History
-            </a>
-          </li>
-          <!-- <li class="nav-item mb-3 fw-normal">
-            <a
-              href="promotion.php"
-              class="nav-link text-white"
-              style="font-size: 18px"
-            >
-              <i
-                class="bi bi-ticket-perforated me-2"
-                style="font-size: 1.2rem"
-              ></i>
-              Promotions
-            </a>
-          </li> -->
-        </ul>
+<div class="d-flex flex-column h-100 px-1 py-3">
 
-        <div class="mt-auto pt-3">
-          <div class="nav-item dropdown">
-            <a
-              href="#"
-              class="nav-link text-white d-flex justify-content-between align-items-center"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            >
-              <?= $user['name']; ?>
-              <i class="bi bi-chevron-down rotate-icon ms-2"></i>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-dark">
-              <li>
-                <a class="dropdown-item" href="profile.php"
-                  ><i class="bi bi-person me-2"></i>Profile</a
-                >
-              </li>
-              <li><hr class="dropdown-divider" /></li>
-              <li>
-                <a class="dropdown-item" href="index.php"
-                  ><i class="bi bi-box-arrow-right me-2"></i>Logout</a
-                >
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
+  <div class="d-flex justify-content-center align-items-center mb-4 px-1" style="height:48px; width:100%">
+    <img
+      src="assets/powercabs-logo.svg"
+      alt="Navigation Logo"
+    />
+  </div>
+
+  <p class="text-uppercase text-white text-opacity-50 fw-semibold px-1 mb-1 lh-1"
+     style="font-size:var(--fs-label); letter-spacing:.09em">
+    Menu
+  </p>
+
+  <ul class="nav flex-column gap-1 mt-1">
+    <?php foreach ($sidebarLinks as $link):
+      $isActive = ($currentPage === $link['match']);
+    ?>
+    <li class="nav-item">
+      <a href="<?= $link['href'] ?>"
+         class="sn-nav-link nav-link text-white d-flex align-items-center gap-2 rounded-2 px-3 py-2 fw-medium<?= $isActive ? ' active' : '' ?>"
+         style="font-size:var(--fs-body)">
+        <i class="bi <?= $link['icon'] ?> opacity-75" style="font-size:var(--fs-body)"></i>
+        <?= $link['label'] ?>
+      </a>
+    </li>
+    <?php endforeach; ?>
+  </ul>
+
+  <div class="mt-auto border-top border-white border-opacity-10 pt-2">
+    <span class="fw-medium flex-grow-1 text-truncate"><?= htmlspecialchars($user['name']) ?></span>
+  </div>
+
+</div>

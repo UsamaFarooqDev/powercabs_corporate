@@ -1,250 +1,275 @@
-<?php 
-
+<?php
 session_start();
-@include('php/connection.php');
+require_once __DIR__ . '/auth/supabase.php';
 if (!isset($_SESSION['user'])) {
-  header("Location: index.php"); // Redirect to login if the user is not logged in
+  header("Location: login.php");
   exit;
 }
-$user = $_SESSION['user'];
-$cid = $user['cid'];
-$emp = "select * from corporate_rides where cid = '$cid'";
-$result2 = mysqli_query($conn,$emp);
+$user      = $_SESSION['user'];
+$cid       = $user['cid'];
+$pageTitle = 'Ride History';
+$rides     = [];
+try {
+  $supabase = new SupabaseClient(true);
+  $rides    = $supabase->select('corporate_rides', ['cid' => $cid], '*', 'date.desc');
+} catch (Throwable $e) {
+  $rides = [];
+}
+
+// Pre-compute quick stats for the summary chips
+$total      = count($rides);
+$completed  = 0; $inprogress = 0; $cancelled = 0; $totalFare = 0.0;
+foreach ($rides as $r) {
+  $s = $r['status'] ?? '';
+  if ($s === 'Completed')   $completed++;
+  if ($s === 'In Progress') $inprogress++;
+  if ($s === 'Cancelled')   $cancelled++;
+  $totalFare += floatval($r['fare'] ?? 0);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dashboard</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-    />
-    <!-- DataTables Bootstrap 5 CSS -->
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PowerCabs Corporate - Ride History</title>
 
-    <link rel="stylesheet" href="global.css" />
-  </head>
-  <body>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+  <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet"/>
+  <link href="global.css" rel="stylesheet"/>
 
-    <nav
-      class="navbar navbar-expand-lg navbar-light bg-white d-flex align-items-center justify-content-between p-3"
-    >
-      <div class="d-flex align-items-center">
-        <button
-          class="navbar-toggler me-2 d-md-none btn btn-light border-none"
-          style="padding: 4px; margin-left: 0px"
-          type="button"
-          id="sidebarToggle"
-        >
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <h1 class="navbar-title m-0 fw-bold ms-lg-230" id="pageTitle">
-          Ride History
-        </h1>
+  <style>
+    body { background: #f5f7fa; }
+
+    /* ── Summary chips ── */
+    .rh-chip {
+      border-radius: 10px;
+      border: 1px solid #eeeff2;
+      background: #fff;
+      padding: .65rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: .65rem;
+      min-width: 130px;
+    }
+    .rh-chip-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: var(--fs-body);
+    }
+    .rh-chip-label { font-size: var(--fs-label); font-weight: 500; color: #9ca3af; text-transform: uppercase; letter-spacing: .05em; line-height: 1; }
+    .rh-chip-value { font-size: 1.05rem; font-weight: 700; color: #111827; line-height: 1.2; margin-top: 2px; }
+
+    /* ── Table card ── */
+    .rh-card { border-radius: 16px; border: 1px solid #eeeff2; }
+
+    /* ── Book-ride button ── */
+    .btn-book {
+      background: #f37a20; color: #fff; border: none;
+      border-radius: 8px; font-size: var(--fs-btn); font-weight: 600;
+      padding: .42rem .95rem;
+      display: inline-flex; align-items: center; gap: .35rem;
+      text-decoration: none;
+      transition: background .15s, box-shadow .15s;
+    }
+    .btn-book:hover { background: #e06910; color: #fff; box-shadow: 0 4px 14px rgba(243,122,32,.3); }
+
+    /* ── Search ── */
+    .rh-search {
+      font-size: var(--fs-input); border: 1px solid #e5e7eb;
+      border-radius: 8px; padding: .38rem .75rem;
+      background: #fff; max-width: 210px;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .rh-search:focus { outline: none; border-color: #f37a20; box-shadow: 0 0 0 3px rgba(243,122,32,.12); }
+
+    /* ── Location cell truncation ── */
+    .rh-loc { max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ── Date & Time cell ── */
+    .rh-dt-date { color: #111827; line-height: 1.2; }
+    .rh-dt-time { font-size: var(--fs-label); color: #6b7280; line-height: 1.2; margin-top: 2px; }
+  </style>
+</head>
+<body>
+
+  <?php require 'modules/navbar.php'; ?>
+
+  <main class="main-content p-4">
+
+    <!-- ── Summary chips ── -->
+    <div class="d-flex flex-wrap gap-2 mb-4">
+
+      <div class="rh-chip shadow-sm">
+        <div class="rh-chip-icon" style="background:#fff4eb">
+          <i class="bi bi-car-front-fill" style="color:#f37a20"></i>
+        </div>
+        <div>
+          <div class="rh-chip-label">Total</div>
+          <div class="rh-chip-value"><?= $total ?></div>
+        </div>
       </div>
 
-      <div class="d-flex align-items-center">
-        <!-- <div class="me-4 d-none d-lg-inline-block">
-          <input
-            type="text"
-            placeholder="Search for something"
-            class="form-control"
-            style="
-              border-radius: 50px;
-              height: 50px;
-              width: 200px;
-              background: #f2f6fd;
-              border: none;
-              padding: 0 20px;
-              font-size: 0.9rem;
-              color: #333;
-            "
-          />
-        </div> -->
+      <div class="rh-chip shadow-sm">
+        <div class="rh-chip-icon" style="background:#f0fdf4">
+          <i class="bi bi-check-circle-fill" style="color:#16a34a"></i>
+        </div>
+        <div>
+          <div class="rh-chip-label">Completed</div>
+          <div class="rh-chip-value"><?= $completed ?></div>
+        </div>
+      </div>
 
-        <div class="d-flex align-items-center ms-3">
-          <!-- <button
-            class="btn rounded-circle d-none d-lg-inline-block me-4"
-            style="width: 50px; height: 50px; background: #f2f6fd"
-          >
-            <i
-              class="bi bi-gear-fill"
-              style="color: #969696; font-size: 1.45rem"
-            ></i>
-          </button>
-          <button
-            class="btn rounded-circle d-none d-lg-inline-block me-4"
-            style="width: 50px; height: 50px; background: #f2f6fd"
-          >
-            <i
-              class="bi bi-bell-fill"
-              style="color: #f37a20; font-size: 1.45rem"
-            ></i>
-          </button> -->
+      <div class="rh-chip shadow-sm">
+        <div class="rh-chip-icon" style="background:#fffbeb">
+          <i class="bi bi-arrow-repeat" style="color:#d97706"></i>
+        </div>
+        <div>
+          <div class="rh-chip-label">In Progress</div>
+          <div class="rh-chip-value"><?= $inprogress ?></div>
+        </div>
+      </div>
 
-          <div class="dropdown" id="avatarDropdown">
-            <img
-              src="assets/profile.svg"
-              alt="Profile"
-              class="rounded-circle profile-img"
-              style="width: 50px; height: 50px; cursor: pointer"
-            />
+      <div class="rh-chip shadow-sm">
+        <div class="rh-chip-icon" style="background:#fef2f2">
+          <i class="bi bi-x-circle-fill" style="color:#dc2626"></i>
+        </div>
+        <div>
+          <div class="rh-chip-label">Cancelled</div>
+          <div class="rh-chip-value"><?= $cancelled ?></div>
+        </div>
+      </div>
+
+      <div class="rh-chip shadow-sm ms-auto">
+        <div class="rh-chip-icon" style="background:#f5f3ff">
+          <i class="bi bi-cash-coin" style="color:#7c3aed"></i>
+        </div>
+        <div>
+          <div class="rh-chip-label">Total Spend</div>
+          <div class="rh-chip-value">€<?= number_format($totalFare, 2) ?></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Table card ── -->
+    <div class="card rh-card border-0 shadow-sm">
+      <div class="card-body p-4">
+
+        <!-- Card header -->
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+          <div>
+            <h6 class="fw-semibold mb-0" style="font-size:var(--fs-card-heading); color:#111827">All Rides</h6>
+            <span class="d-block mt-1" style="font-size:var(--fs-card-sub); color:#9ca3af">
+              <?= $total ?> record<?= $total !== 1 ? 's' : '' ?>
+            </span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <input type="text" id="ridesSearch" class="rh-search" placeholder="Search rides…"/>
+            <a href="bookRide.php" class="btn-book">
+              <i class="bi bi-plus-lg"></i> Book Ride
+            </a>
           </div>
         </div>
-      </div>
-    </nav>
 
-    <div class="sidebar text-white p-3">
-    <?php 
-        @require('modules/sidebar.php');
-      ?>
-    </div>
-
-    <main class="main-content p-4" style="background: #f5f7fa">
-      <div class="card shadow border-0" style='border-radius: 25px;'>
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center flex-wrap p-4">
-              <!-- <div class="d-flex flex-column flex-md-row align-items-md-center">
-                <input
-                  type="text"
-                  placeholder="Search"
-                  class="form-control flex-grow-1 me-md-3 mb-3 mb-md-0 border-0"
-                  style="max-width: 250px; border-radius: 30px; background: #f5f7fa; color: #969696;"
-                />
-            
-                <select
-                  class="form-select border-0 me-md-3 mb-3 mb-md-0"
-                  style="max-width: 170px; border-radius: 30px; background: #f5f7fa; color: #969696;"
-                >
-                  <option value="department">Sort by: Dept.</option>
-                  <option value="name">Sort by: Name</option>
-                </select>
-              </div> -->
-            
-              <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center">
-                <!-- <a
-                  href="#"
-                  class="btn mt-md-3 me-md-3 mb-3 mb-md-0"
-                  style="background-color: #fff; color: #1f1f21; text-decoration: none; border: 1px solid #969696; border-radius: 10px; font-weight: 600;"
-                >
-                  Export CSV
-                </a> -->
-            
-                <a
-                  href="bookRide.php"
-                  class="btn mt-md-3"
-                  style="background-color: #f37a20; color: #fff; text-decoration: none; border-radius: 10px;"
-                >
-                  Book New Ride
-                </a>
-              </div>
-            </div>
-
-            <div class="table-responsive">
-                <table class="table align-middle datatable">
-                    <thead>
-                      <tr>
-                        <th style='border-bottom: 1px solid #e5e5e5; color: #969696; font-size: 14px; font-weight: 500;'>Employee</th>
-                        <th style='border-bottom: 1px solid #e5e5e5; color: #969696; font-size: 14px; font-weight: 500;'>Pickup Location</th>
-                        <th style='border-bottom: 1px solid #e5e5e5; color: #969696; font-size: 14px; font-weight: 500;'>Dropoff Location</th>
-                        <th style='border-bottom: 1px solid #e5e5e5; color: #969696; font-size: 14px; font-weight: 500;'>Date and Time</th>
-                        <th style='border-bottom: 1px solid #e5e5e5; color: #969696; font-size: 14px; font-weight: 500;'>Cab #</th>
-                        <th style='border-bottom: 1px solid #e5e5e5; color: #969696; font-size: 14px; font-weight: 500;'>Cost</th>
-                        <th style='border-bottom: 1px solid #e5e5e5; color: #969696; font-size: 14px; font-weight: 500;'>Status</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <?php 
-                        while($emp_data = mysqli_fetch_array($result2))
-                        {
-                      ?>
-                        <tr style='border-bottom: 1px solid #e5e5e5;'>
-                            <td class='py-3' style='font-size: 14px;'><?= $emp_data['employee']; ?></td>
-                            <td class='py-3' style='font-size: 14px;'><?= $emp_data['pickup']; ?></td>
-                            <td class='py-3' style='font-size: 14px;'><?= $emp_data['destination']; ?></td>
-                            <td class='py-3' style='font-size: 14px;'><?= $emp_data['pickupTime']; ?></td>
-                            <td class='py-3' style='font-size: 14px;'><?= $emp_data['vehicle_number'] ?? 'N/A' ?></td>
-                            <td class='py-3' style='font-size: 14px;'>€<?= $emp_data['fare']; ?></td>
-                            <td class='py-3' style='font-size: 14px;'>
-                            <?php
-$status = $emp_data['status'];
-$color_class = '';
-
-if ($status == 'In Progress') {
-    $color_class = 'text-warning';
-} elseif ($status == 'Completed') {
-    $color_class = 'text-success';
-} elseif ($status == 'Cancelled') {
-    $color_class = 'text-danger';
-}
-?>
-
-<span class="<?= $color_class; ?>">
-    <?= $status; ?>
-</span>
-                            </td>
-                        </tr>
-                        <?php 
-                        }
-                        ?>
-                    </tbody>
-                </table>
-            </div>
-
-        
-
+        <!-- Table -->
+        <div class="table-responsive">
+          <table class="table pc-table w-100" id="rhTable">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Pickup</th>
+                <th>Dropoff</th>
+                <th>Date &amp; Time</th>
+                <th>Cab #</th>
+                <th>Cost</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="rides-body">
+              <?php foreach ($rides as $r):
+                $status = $r['status'] ?? '';
+                $badgeClass = match($status) {
+                  'Completed'   => 'badge-completed',
+                  'In Progress' => 'badge-inprogress',
+                  'Pending'     => 'badge-pending',
+                  'Cancelled'   => 'badge-cancelled',
+                  default       => 'badge-pending',
+                };
+                $badgeIcon = match($status) {
+                  'Completed'   => 'bi-check-lg',
+                  'In Progress' => 'bi-arrow-repeat',
+                  'Pending'     => 'bi-clock',
+                  'Cancelled'   => 'bi-x-lg',
+                  default       => 'bi-clock',
+                };
+              ?>
+              <tr>
+                <td><?= htmlspecialchars($r['employee']    ?? '') ?></td>
+                <td><span class="rh-loc" title="<?= htmlspecialchars($r['pickup'] ?? '') ?>"><?= htmlspecialchars($r['pickup'] ?? '') ?></span></td>
+                <td><span class="rh-loc" title="<?= htmlspecialchars($r['destination'] ?? '') ?>"><?= htmlspecialchars($r['destination'] ?? '') ?></span></td>
+                <td style="white-space:nowrap">
+                  <?php
+                    $pt = $r['pickupTime'] ?? '';
+                    $ts = $pt ? strtotime($pt) : false;
+                  ?>
+                  <?php if ($ts): ?>
+                    <div class="rh-dt-date"><?= date('d-m-y', $ts) ?></div>
+                    <div class="rh-dt-time"><?= date('h:i A', $ts) ?></div>
+                  <?php else: ?>
+                    <?= htmlspecialchars($pt) ?>
+                  <?php endif; ?>
+                </td>
+                <td><?= htmlspecialchars($r['vehicle_number'] ?? 'N/A') ?></td>
+                <td>€<?= htmlspecialchars($r['fare'] ?? '0') ?></td>
+                <td><span class="badge-status <?= $badgeClass ?>" title="<?= htmlspecialchars($status) ?>"><i class="bi <?= $badgeIcon ?>"></i></span></td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
         </div>
+
+      </div>
     </div>
-</div>
 
-    </main>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- jQuery -->
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<!-- DataTables -->
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-<script src="js/script.js"></script>
-    <script>
-      document
-        .getElementById('sidebarToggle')
-        .addEventListener('click', function () {
-          document.querySelector('.sidebar').classList.toggle('active');
-        });
+  </main>
 
-      document.addEventListener('click', function (event) {
-        const sidebar = document.querySelector('.sidebar');
-        if (
-          window.innerWidth < 768 &&
-          !event.target.closest('.sidebar') &&
-          !event.target.closest('#sidebarToggle')
-        ) {
-          sidebar.classList.remove('active');
-        }
-      });
-      function updatePageTitle() {
-        const routeTitles = {
-          '/dashboard': 'Dashboard',
-          '/employee': 'Employee Directory',
-          '/ride-history': 'Ride History',
-          '/book-ride': 'Book a Ride',
-          '/promotion': 'Promotions & Coupon',
-          '/profile': 'Profile',
-        };
-        const path = window.location.pathname;
-        document.getElementById('pageTitle').textContent =
-          routeTitles[path] || 'Dashboard';
-      }
+  <!-- Scripts — order preserved -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-      function toggleSidebar() {
-        console.log('Sidebar toggle functionality would go here');
-      }
-    </script>
-  </body>
+  <script>
+    // DataTable + custom search
+    const rhTable = $('#rhTable').DataTable({ pageLength: 10, order: [] });
+    document.getElementById('ridesSearch').addEventListener('input', function () {
+      rhTable.search(this.value).draw();
+    });
+
+    // Sidebar toggle
+    document.getElementById('sidebarToggle')?.addEventListener('click', () => {
+      document.querySelector('.sidebar')?.classList.toggle('active');
+    });
+    document.addEventListener('click', e => {
+      if (window.innerWidth < 768
+        && !e.target.closest('.sidebar')
+        && !e.target.closest('#sidebarToggle'))
+        document.querySelector('.sidebar')?.classList.remove('active');
+    });
+  </script>
+
+  <script>
+    window.RIDES_REALTIME_CONFIG = {
+      cid:            <?= json_encode($cid) ?>,
+      supabaseUrl:    <?= json_encode(SUPABASE_URL) ?>,
+      supabaseAnonKey:<?= json_encode(SUPABASE_ANON_KEY) ?>,
+    };
+  </script>
+  <script src="js/script.js"></script>
+  <script src="js/realtime-rides.js"></script>
+
+</body>
 </html>
