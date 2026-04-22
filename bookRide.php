@@ -78,6 +78,81 @@ try {
       margin: .85rem 0;
     }
 
+    /* ── Ride-type tile picker ── */
+    .br-field-stacked {
+      display: block;
+    }
+    .br-field-stacked > .br-label {
+      width: auto;
+      display: block;
+      margin-bottom: .55rem;
+      font-size: var(--fs-label);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #9ca3af;
+    }
+    .br-ride-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    @media (max-width: 480px) {
+      .br-ride-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    .br-ride-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 6px;
+      background: #fff;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 10px;
+      cursor: pointer;
+      text-align: center;
+      transition: border-color .15s, box-shadow .15s, transform .15s, background .15s;
+      user-select: none;
+    }
+    .br-ride-card:hover {
+      border-color: #f3b88e;
+      transform: translateY(-1px);
+      box-shadow: 0 3px 10px rgba(17,24,39,.05);
+    }
+    .br-ride-card.is-selected {
+      border-color: #f37a20;
+      background: #fff7f0;
+      box-shadow: 0 0 0 2px rgba(243,122,32,.12);
+    }
+    .br-ride-card input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .br-ride-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: #f3f4f6;
+      color: #374151;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      transition: background .15s, color .15s;
+    }
+    .br-ride-card.is-selected .br-ride-icon {
+      background: #f37a20;
+      color: #fff;
+    }
+    .br-ride-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+      line-height: 1.2;
+    }
+
     #rideSummaryBar {
       border-radius: 10px;
       border: 1px solid #fde68a;
@@ -199,16 +274,30 @@ try {
 
               <hr class="br-divider">
 
-              <div class="br-field mb-0">
-                <label class="br-label" for="carType">Car Type</label>
-                <select class="form-select" name="carType" id="carType">
-                  <option value="Economy">Economy</option>
-                  <option value="Economy XL">Economy XL</option>
-                  <option value="Business">Business</option>
-                  <option value="Business Plus">Business Plus</option>
-                  <option value="Limousine">Limousine</option>
-                  <option value="Wheelchair accessible">Wheelchair Accessible</option>
-                </select>
+              <div class="br-field br-field-stacked mb-0">
+                <label class="br-label" for="carType">Ride Type</label>
+                <div class="br-ride-grid" id="rideTypeGrid">
+                  <?php
+                    $rideTypes = [
+                      ['value' => 'Economy',              'name' => 'Economy',              'icon' => 'bi-car-front',          'desc' => 'Affordable everyday rides'],
+                      ['value' => 'Economy XL',           'name' => 'Economy XL',           'icon' => 'bi-truck-front',        'desc' => 'Up to 6 passengers'],
+                      ['value' => 'Business',             'name' => 'Business',             'icon' => 'bi-briefcase-fill',     'desc' => 'Premium sedans'],
+                      ['value' => 'Business Plus',        'name' => 'Business Plus',        'icon' => 'bi-gem',                'desc' => 'Top-tier business rides'],
+                      ['value' => 'Limousine',            'name' => 'Limousine',            'icon' => 'bi-car-front-fill',     'desc' => 'Luxury chauffeur service'],
+                      ['value' => 'Wheelchair accessible','name' => 'Wheelchair',           'icon' => 'bi-person-wheelchair',  'desc' => 'Step-free access'],
+                      ['value' => 'Parcel Delivery',      'name' => 'Parcel Delivery',      'icon' => 'bi-box-seam-fill',      'desc' => 'Send packages & parcels'],
+                    ];
+                    foreach ($rideTypes as $i => $rt):
+                      $checked = $i === 0 ? 'checked' : '';
+                  ?>
+                    <label class="br-ride-card<?= $checked ? ' is-selected' : '' ?>" data-value="<?= htmlspecialchars($rt['value']) ?>">
+                      <input type="radio" name="rideTypeRadio" value="<?= htmlspecialchars($rt['value']) ?>" <?= $checked ?>/>
+                      <span class="br-ride-icon"><i class="bi <?= htmlspecialchars($rt['icon']) ?>"></i></span>
+                      <span class="br-ride-name"><?= htmlspecialchars($rt['name']) ?></span>
+                    </label>
+                  <?php endforeach; ?>
+                </div>
+                <input type="hidden" name="carType" id="carType" value="Economy"/>
               </div>
 
               <hr class="br-divider">

@@ -6,6 +6,8 @@ echo '<script>if(!document.querySelector("link[rel=icon]")){var l=document.creat
 
 session_start_once:
 if (session_status() === PHP_SESSION_NONE) session_start();
+$_navCid = $_SESSION['user']['cid'] ?? '';
+echo '<script>window.PC_USER_CID = ' . json_encode((string)$_navCid) . ';</script>';
 $userName = $_SESSION['user']['name'] ?? $_SESSION['user_name'] ?? $_SESSION['name'] ?? 'User';
 $parts    = array_filter(explode(' ', trim($userName)));
 $initials = strtoupper(

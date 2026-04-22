@@ -213,6 +213,7 @@ function calculateFare(distanceKm, durationMin, pickupTimeStr, rideType) {
     'Wheelchair accessible': 1.1,
     'Wheelchair Taxi': 1.1,
     'Pets Taxi': 1.15,
+    'Parcel Delivery': 0.9,
     'Courier / Parcel': 0.9,
   };
   const multiplier = multipliers[rideType] ?? 1.0;
@@ -245,6 +246,7 @@ function setupFormListeners() {
   const carTypeSelect = document.getElementById('carType');
   const employeeSelect = document.getElementById('employee');
   const bookRideBtn = document.getElementById('bookRideBtn');
+  const rideTypeGrid = document.getElementById('rideTypeGrid');
 
   [pickupInput, dropoffInput].forEach((el) => {
     if (!el) return;
@@ -259,6 +261,23 @@ function setupFormListeners() {
   if (carTypeSelect) {
     carTypeSelect.addEventListener('change', () => {
       recalculateFareForCurrentRoute();
+    });
+  }
+
+  if (rideTypeGrid && carTypeSelect) {
+    rideTypeGrid.addEventListener('click', (e) => {
+      const card = e.target.closest('.br-ride-card');
+      if (!card) return;
+      const value = card.dataset.value;
+      if (!value) return;
+      rideTypeGrid.querySelectorAll('.br-ride-card').forEach(c => c.classList.remove('is-selected'));
+      card.classList.add('is-selected');
+      const radio = card.querySelector('input[type="radio"]');
+      if (radio) radio.checked = true;
+      if (carTypeSelect.value !== value) {
+        carTypeSelect.value = value;
+        carTypeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
     });
   }
 
@@ -298,6 +317,14 @@ function resetRideForm() {
   // Hidden fields & computed values
   const employeeName = document.getElementById('employeeName');
   if (employeeName) employeeName.value = '';
+  const carType = document.getElementById('carType');
+  if (carType) carType.value = 'Economy';
+  const rideTypeGrid = document.getElementById('rideTypeGrid');
+  if (rideTypeGrid) {
+    rideTypeGrid.querySelectorAll('.br-ride-card').forEach(c => {
+      c.classList.toggle('is-selected', c.dataset.value === 'Economy');
+    });
+  }
   const summary = document.getElementById('rideSummaryBar');
   if (summary) summary.classList.add('d-none');
   ['summaryFare','summaryDuration','summaryDistance'].forEach(id => {

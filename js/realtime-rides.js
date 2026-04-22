@@ -1,8 +1,63 @@
 (() => {
   const BC_NAME = 'powercab-corporate-rides';
   const LS_KEY = 'powercab_corporate_rides_refresh';
+  const RIDE_STATUS_KEY = 'powercab_corporate_ride_statuses_v1';
 
   const snapshotUrl = new URL('php/rides_snapshot.php', window.location.href).href;
+
+  function readStoredRideStatuses() {
+    try {
+      const raw = sessionStorage.getItem(RIDE_STATUS_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function writeStoredRideStatuses(map) {
+    try {
+      sessionStorage.setItem(RIDE_STATUS_KEY, JSON.stringify(map));
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  function rideLabel(ride) {
+    const name = (ride && ride.employee) ? String(ride.employee).trim() : '';
+    if (name) return `${name}'s`;
+    const pickup = (ride && ride.pickup) ? String(ride.pickup).trim() : '';
+    if (pickup) return `${pickup} pickup`;
+    return 'Your';
+  }
+
+  function notifyAssignedRides(rides) {
+    const prev = readStoredRideStatuses();
+    const next = {};
+    (rides || []).forEach((r) => {
+      if (r && r.id != null) next[String(r.id)] = r.status || '';
+    });
+
+    // Only fire notifications after we've seen an initial snapshot — avoids
+    // notifying for rides that were already assigned before the user opened the page.
+    if (prev && typeof window.showPersistentNotification === 'function') {
+      (rides || []).forEach((r) => {
+        if (!r || r.id == null) return;
+        const key = String(r.id);
+        const before = prev[key];
+        const after = r.status || '';
+        if (before === 'Pending' && after === 'Assigned') {
+          window.showPersistentNotification({
+            id: 'ride-assigned-' + key,
+            title: 'Driver Assigned',
+            message: `${rideLabel(r)} ride has been assigned a driver.`,
+            type: 'success'
+          });
+        }
+      });
+    }
+
+    writeStoredRideStatuses(next);
+  }
 
   function statusClass(status) {
     if (status === 'In Progress') return 'text-warning';
@@ -119,6 +174,7 @@
             return;
           }
           try {
+            notifyAssignedRides(data.rides || []);
             renderRides(data.rides || []);
             setStats(data.stats || {});
           } catch (e) {

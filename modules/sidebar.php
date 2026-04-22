@@ -41,7 +41,7 @@ $currentPage = $pageTitle ?? '';
   </ul>
 
   <div class="mt-auto border-top border-white border-opacity-10 pt-2">
-    <span class="fw-medium flex-grow-1 text-truncate"><?= htmlspecialchars($user['name']) ?></span>
+    <span class="fw-medium flex-grow-1 text-truncate"><?= htmlspecialchars($_SESSION['user']['name'] ?? 'User') ?></span>
   </div>
 
 </div>
