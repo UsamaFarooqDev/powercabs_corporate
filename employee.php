@@ -13,7 +13,7 @@ $employeesRows = [];
 
 try {
   $supabase    = new SupabaseClient(true);
-  $employees   = $supabase->select('corporate_employees', ['cid' => $cid], '*', 'name.asc');
+  $employees   = $supabase->select('corporate_employees', ['cid' => $cid], '*', 'id.desc');
   $summaryRows = [];
   try {
     $summaryRows = $supabase->select('employee_ride_summary', ['cid' => $cid], '*', null);

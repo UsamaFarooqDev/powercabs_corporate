@@ -318,11 +318,13 @@ function resetRideForm() {
   const employeeName = document.getElementById('employeeName');
   if (employeeName) employeeName.value = '';
   const carType = document.getElementById('carType');
-  if (carType) carType.value = 'Economy';
   const rideTypeGrid = document.getElementById('rideTypeGrid');
+  const firstCard = rideTypeGrid?.querySelector('.br-ride-card');
+  const defaultRide = firstCard?.dataset.value || 'Economy';
+  if (carType) carType.value = defaultRide;
   if (rideTypeGrid) {
     rideTypeGrid.querySelectorAll('.br-ride-card').forEach(c => {
-      c.classList.toggle('is-selected', c.dataset.value === 'Economy');
+      c.classList.toggle('is-selected', c.dataset.value === defaultRide);
     });
   }
   const summary = document.getElementById('rideSummaryBar');

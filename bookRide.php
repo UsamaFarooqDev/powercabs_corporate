@@ -10,12 +10,89 @@ $cid       = $user['cid'];
 $cname     = $user['name'];
 $pageTitle = 'Book a Ride';
 $employees = [];
+$rideTypes = [];
 try {
   $supabase  = new SupabaseClient(true);
   $employees = $supabase->select('corporate_employees', ['cid' => $cid], 'id,name', 'name.asc');
 } catch (Throwable $e) {
   $employees = [];
 }
+
+/**
+ * Turn whatever the DB stores in the icon column into renderable HTML.
+ * Accepts: inline SVG, http(s)/data/relative image URL, Bootstrap-Icons class
+ * (`bi-car-front` or bare `car-front`).
+ */
+function pc_render_ride_icon($row, string $fallback = 'bi-car-front'): string {
+  $candidates = [
+    $row['icon']       ?? null,
+    $row['icon_class'] ?? null,
+    $row['image']      ?? null,
+    $row['image_url']  ?? null,
+    $row['svg']        ?? null,
+  ];
+  foreach ($candidates as $val) {
+    $v = trim((string)$val);
+    if ($v === '') continue;
+    if (stripos($v, '<svg') === 0) return $v;
+    if (preg_match('#^(https?:)?//|^/[^/]|^data:image#i', $v)) {
+      return '<img src="' . htmlspecialchars($v, ENT_QUOTES) . '" alt="" style="height:1.4rem;width:auto;display:block;"/>';
+    }
+    $cls = stripos($v, 'bi-') === 0 ? $v : 'bi-' . ltrim($v, '-');
+    return '<i class="bi ' . htmlspecialchars($cls) . '"></i>';
+  }
+  return '<i class="bi ' . htmlspecialchars($fallback) . '"></i>';
+}
+
+// Fetch ride types from Supabase. Try ordering candidates and tolerate any missing column.
+try {
+  $rtSupabase = $supabase ?? new SupabaseClient(true);
+  $rideTypeRows = [];
+  foreach (['sort_order.asc', 'order.asc', 'id.asc'] as $orderTry) {
+    try {
+      $rideTypeRows = $rtSupabase->select('ride_types', [], '*', $orderTry);
+      break;
+    } catch (Throwable $_) { /* try next ordering */ }
+  }
+  foreach ($rideTypeRows as $row) {
+    $value = trim((string)($row['value'] ?? $row['name'] ?? $row['type'] ?? ''));
+    $name  = trim((string)($row['display_name'] ?? $row['name']  ?? $value));
+    $desc  = trim((string)($row['description'] ?? $row['desc']       ?? ''));
+    if ($value === '' && $name === '') continue;
+    if ($value === '') $value = $name;
+    if ($name  === '') $name  = $value;
+    $rideTypes[] = [
+      'value'    => $value,
+      'name'     => $name,
+      'iconHtml' => pc_render_ride_icon($row),
+      'desc'     => $desc,
+    ];
+  }
+} catch (Throwable $e) {
+  $rideTypes = [];
+}
+
+// Fallback if Supabase fetch failed or returned no rows
+if (empty($rideTypes)) {
+  $fallbackTypes = [
+    ['value' => 'Economy',              'name' => 'Economy',         'icon' => 'bi-car-front',         'desc' => 'Affordable everyday rides'],
+    ['value' => 'Economy XL',           'name' => 'Economy XL',      'icon' => 'bi-truck-front',       'desc' => 'Up to 6 passengers'],
+    ['value' => 'Business',             'name' => 'Business',        'icon' => 'bi-briefcase-fill',    'desc' => 'Premium sedans'],
+    ['value' => 'Business Plus',        'name' => 'Business Plus',   'icon' => 'bi-gem',               'desc' => 'Top-tier business rides'],
+    ['value' => 'Limousine',            'name' => 'Limousine',       'icon' => 'bi-car-front-fill',    'desc' => 'Luxury chauffeur service'],
+    ['value' => 'Wheelchair accessible','name' => 'Wheelchair',      'icon' => 'bi-person-wheelchair', 'desc' => 'Step-free access'],
+    ['value' => 'Parcel Delivery',      'name' => 'Parcel Delivery', 'icon' => 'bi-box-seam-fill',     'desc' => 'Send packages & parcels'],
+  ];
+  foreach ($fallbackTypes as $rt) {
+    $rideTypes[] = [
+      'value'    => $rt['value'],
+      'name'     => $rt['name'],
+      'iconHtml' => pc_render_ride_icon($rt),
+      'desc'     => $rt['desc'],
+    ];
+  }
+}
+$defaultRideType = $rideTypes[0]['value'] ?? 'Economy';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -277,27 +354,19 @@ try {
               <div class="br-field br-field-stacked mb-0">
                 <label class="br-label" for="carType">Ride Type</label>
                 <div class="br-ride-grid" id="rideTypeGrid">
-                  <?php
-                    $rideTypes = [
-                      ['value' => 'Economy',              'name' => 'Economy',              'icon' => 'bi-car-front',          'desc' => 'Affordable everyday rides'],
-                      ['value' => 'Economy XL',           'name' => 'Economy XL',           'icon' => 'bi-truck-front',        'desc' => 'Up to 6 passengers'],
-                      ['value' => 'Business',             'name' => 'Business',             'icon' => 'bi-briefcase-fill',     'desc' => 'Premium sedans'],
-                      ['value' => 'Business Plus',        'name' => 'Business Plus',        'icon' => 'bi-gem',                'desc' => 'Top-tier business rides'],
-                      ['value' => 'Limousine',            'name' => 'Limousine',            'icon' => 'bi-car-front-fill',     'desc' => 'Luxury chauffeur service'],
-                      ['value' => 'Wheelchair accessible','name' => 'Wheelchair',           'icon' => 'bi-person-wheelchair',  'desc' => 'Step-free access'],
-                      ['value' => 'Parcel Delivery',      'name' => 'Parcel Delivery',      'icon' => 'bi-box-seam-fill',      'desc' => 'Send packages & parcels'],
-                    ];
-                    foreach ($rideTypes as $i => $rt):
+                  <?php foreach ($rideTypes as $i => $rt):
                       $checked = $i === 0 ? 'checked' : '';
                   ?>
-                    <label class="br-ride-card<?= $checked ? ' is-selected' : '' ?>" data-value="<?= htmlspecialchars($rt['value']) ?>">
+                    <label class="br-ride-card<?= $checked ? ' is-selected' : '' ?>"
+                           data-value="<?= htmlspecialchars($rt['value']) ?>"
+                           title="<?= htmlspecialchars($rt['desc']) ?>">
                       <input type="radio" name="rideTypeRadio" value="<?= htmlspecialchars($rt['value']) ?>" <?= $checked ?>/>
-                      <span class="br-ride-icon"><i class="bi <?= htmlspecialchars($rt['icon']) ?>"></i></span>
+                      <span class="br-ride-icon"><?= $rt['iconHtml'] ?></span>
                       <span class="br-ride-name"><?= htmlspecialchars($rt['name']) ?></span>
                     </label>
                   <?php endforeach; ?>
                 </div>
-                <input type="hidden" name="carType" id="carType" value="Economy"/>
+                <input type="hidden" name="carType" id="carType" value="<?= htmlspecialchars($defaultRideType) ?>"/>
               </div>
 
               <hr class="br-divider">

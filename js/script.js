@@ -9,6 +9,7 @@
       "pageLength": 10,
       "lengthChange": false,
       "ordering": true,
+      "order": [],          // preserve PHP-supplied row order (id.desc → latest first)
       "info": true,
       "language": {
         "search": "_INPUT_",

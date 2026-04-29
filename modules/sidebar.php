@@ -3,6 +3,7 @@ $sidebarLinks = [
   ['href' => 'home.php',        'icon' => 'bi-house-door-fill',  'label' => 'Home',     'match' => 'Dashboard'],
   ['href' => 'employee.php',    'icon' => 'bi-people-fill',      'label' => 'Employees',     'match' => 'Employee Directory'],
   ['href' => 'rideHistory.php', 'icon' => 'bi-clock-history',    'label' => 'Rides History',  'match' => 'Ride History'],
+  ['href' => 'invoice.php',     'icon' => 'bi-receipt',          'label' => 'Invoices',  'match' => 'Invoices'],
 ];
 $currentPage = $pageTitle ?? '';
 ?>

@@ -19,7 +19,7 @@ $pageTitle     = 'Dashboard';
 
 try {
   $supabase = new SupabaseClient(true);
-  $rides    = $supabase->select('corporate_rides', ['cid' => $cid], '*', 'date.desc', 100);
+  $rides    = $supabase->select('corporate_rides', ['cid' => $cid], '*', 'id.desc', 100);
   $total_ride = count($rides);
   foreach ($rides as $row) {
     if (($row['status'] ?? '') === 'Pending') $pending_rides++;

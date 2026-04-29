@@ -13,7 +13,7 @@ $cid = $_SESSION['user']['cid'];
 
 try {
     $supabase = new SupabaseClient(true);
-    $rides = $supabase->select('corporate_rides', ['cid' => $cid], '*', 'date.desc', 100);
+    $rides = $supabase->select('corporate_rides', ['cid' => $cid], '*', 'id.desc', 100);
 
     $totalRides = count($rides);
     $pendingRides = 0;

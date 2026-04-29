@@ -81,6 +81,9 @@
   }
 
   function rideRowHtml(ride) {
+    const extra = (typeof window.rideRowExtraCells === 'function')
+      ? (window.rideRowExtraCells(ride) || '')
+      : '';
     return `
       <tr style='border-bottom: 1px solid #e5e5e5;'>
         <td class='py-3' style='font-size: 14px;'>${ride.employee || ''}</td>
@@ -90,6 +93,7 @@
         <td class='py-3' style='font-size: 14px;'>${ride.vehicle_number || 'N/A'}</td>
         <td class='py-3' style='font-size: 14px;'>€${ride.fare || 0}</td>
         <td class='py-3' style='font-size: 14px;'><span class="${statusClass(ride.status || '')}">${ride.status || ''}</span></td>
+        ${extra}
       </tr>
     `;
   }
