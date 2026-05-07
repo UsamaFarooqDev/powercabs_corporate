@@ -52,7 +52,11 @@ try {
     try {
       $rideTypeRows = $rtSupabase->select('ride_types', [], '*', $orderTry);
       break;
-    } catch (Throwable $_) { /* try next ordering */ }
+    } catch (Throwable $orderErr) {
+      // cURL timeout (errno 28) → bail; retrying multiplies the latency.
+      if (strpos($orderErr->getMessage(), '[28]') !== false) { $rideTypeRows = []; break; }
+      /* 4xx → try next ordering */
+    }
   }
   foreach ($rideTypeRows as $row) {
     $value = trim((string)($row['value'] ?? $row['name'] ?? $row['type'] ?? ''));
@@ -220,8 +224,8 @@ $defaultRideType = $rideTypes[0]['value'] ?? 'Economy';
       transition: background .15s, color .15s;
     }
     .br-ride-card.is-selected .br-ride-icon {
-      background: #f37a20;
-      color: #fff;
+      background: #fff4eb;
+      color: #f37a20;
     }
     .br-ride-name {
       font-size: 13px;

@@ -2,10 +2,10 @@
 require_once __DIR__ . '/config.php';
 
 class SupabaseClient {
-    private $baseUrl;
-    private $apiKey;
+    private string $baseUrl;
+    private string $apiKey;
 
-    public function __construct($serviceRole = true) {
+    public function __construct(bool $serviceRole = true) {
         $this->baseUrl = SUPABASE_URL;
         $this->apiKey = $serviceRole ? SUPABASE_SERVICE_ROLE_KEY : SUPABASE_ANON_KEY;
     }
@@ -13,7 +13,7 @@ class SupabaseClient {
     /**
      * @param string $prefer Single Prefer: value (no "Prefer:" prefix), e.g. return=representation or return=minimal
      */
-    private function request($method, $path, $query = [], $body = null, $prefer = 'return=representation', $extraHeaders = []) {
+    private function request(string $method, string $path, array $query = [], $body = null, string $prefer = 'return=representation', array $extraHeaders = []): array {
         $url = rtrim($this->baseUrl, '/') . $path;
         if (!empty($query)) {
             $url .= '?' . http_build_query($query);
@@ -32,17 +32,34 @@ class SupabaseClient {
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        // Fail fast: don't let a single hung request eat PHP's 30 s budget.
+        // CONNECTTIMEOUT covers DNS + TCP/TLS handshake; TIMEOUT covers the
+        // whole exchange. Keep both well under PHP max_execution_time.
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 12);
+        // IPv4 only — some Windows hosts hang when IPv6 routes silently drop.
+        if (defined('CURL_IPRESOLVE_V4')) {
+            curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+        }
+        // Encourage connection re-use & avoid Expect: 100-continue stalls.
+        curl_setopt($ch, CURLOPT_FORBID_REUSE, false);
+        $headers[] = 'Expect:';
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         if ($body !== null) {
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
         }
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $err = curl_error($ch);
+        $err      = curl_error($ch);
+        $errno    = curl_errno($ch);
+        // curl_close() is a no-op since PHP 8.0 and is deprecated from
+        // PHP 8.5 onwards — the handle is freed when $ch goes out of scope.
 
         if ($response === false || $err) {
-            throw new Exception('Supabase request failed: ' . $err);
+            // Surface the cURL error number so callers can distinguish a
+            // timeout (CURLE_OPERATION_TIMEDOUT = 28) from other failures.
+            throw new Exception('Supabase request failed [' . $errno . ']: ' . $err);
         }
 
         $decoded = json_decode($response, true);
@@ -54,7 +71,7 @@ class SupabaseClient {
         return is_array($decoded) ? $decoded : [];
     }
 
-    public function select($table, $filters = [], $select = '*', $order = null, $limit = null) {
+    public function select(string $table, array $filters = [], string $select = '*', ?string $order = null, ?int $limit = null): array {
         $query = ['select' => $select];
         foreach ($filters as $column => $value) {
             $query[$column] = 'eq.' . $value;
@@ -68,11 +85,11 @@ class SupabaseClient {
         return $this->request('GET', '/rest/v1/' . $table, $query);
     }
 
-    public function insert($table, $data) {
+    public function insert(string $table, array $data): array {
         return $this->request('POST', '/rest/v1/' . $table, [], $data);
     }
 
-    public function update($table, $filters, $data) {
+    public function update(string $table, array $filters, array $data): array {
         $query = [];
         foreach ($filters as $column => $value) {
             $query[$column] = 'eq.' . $value;
@@ -80,7 +97,7 @@ class SupabaseClient {
         return $this->request('PATCH', '/rest/v1/' . $table, $query, $data);
     }
 
-    public function delete($table, $filters) {
+    public function delete(string $table, array $filters): array {
         $query = [];
         foreach ($filters as $column => $value) {
             $query[$column] = 'eq.' . $value;

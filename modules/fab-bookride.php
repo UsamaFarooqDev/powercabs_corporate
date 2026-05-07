@@ -1,5 +1,5 @@
 <?php
-$hideFab = isset($pageTitle) && in_array($pageTitle, ['Book a Ride', 'Profile']);
+$hideFab = isset($pageTitle) && in_array($pageTitle, ['Book a Ride', 'Profile', 'Invoices', 'Airport Meet & Greet']);
 if (!$hideFab):
 ?>
 <style>

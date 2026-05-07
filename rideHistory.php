@@ -91,53 +91,135 @@ foreach ($rides as $r) {
     .rh-dt-date { color: #111827; line-height: 1.2; }
     .rh-dt-time { font-size: var(--fs-label); color: #6b7280; line-height: 1.2; margin-top: 2px; }
 
-    /* ── Edit action ── */
-    .btn-edit-ride {
-      font-size: var(--fs-small); font-weight: 500; color: #374151;
-      border: 1px solid #e5e7eb; border-radius: 6px;
-      padding: .25rem .55rem; background: #fff;
-      display: inline-flex; align-items: center; gap: .25rem;
-      transition: background .12s, border-color .12s;
+    /* ── Cancel-ride action ── */
+    .btn-cancel-ride {
+      font-size: var(--fs-small); font-weight: 500; color: #dc2626;
+      border: 1px solid #fecaca; border-radius: 7px;
+      padding: .28rem .65rem; background: #fff;
+      display: inline-flex; align-items: center; gap: .35rem;
+      transition: background .12s, border-color .12s, box-shadow .12s;
     }
-    .btn-edit-ride:hover { background: #f9fafb; border-color: #d1d5db; }
+    .btn-cancel-ride:hover {
+      background: #fef2f2; border-color: #fca5a5;
+      box-shadow: 0 1px 4px rgba(220,38,38,.08);
+    }
+    .btn-cancel-ride i { font-size: .78rem; }
+    .rh-status-final {
+      font-size: var(--fs-small); color: #94a3b8; font-style: italic;
+    }
 
-    /* ── Edit ride modal ── */
-    .pc-modal .modal-content { border-radius: 14px; border: 1px solid #eeeff2; }
-    .pc-modal .modal-header  { border-bottom: 1px solid #f3f4f6; padding: 1.1rem 1.4rem .85rem; }
-    .pc-modal .modal-title   { font-size: var(--fs-card-heading); font-weight: 700; color: #111827; }
-    .pc-modal .modal-body    { padding: 1.25rem 1.4rem; }
-    .pc-modal .modal-footer  { border-top: 1px solid #f3f4f6; padding: .85rem 1.4rem; }
-    .pc-modal label {
-      font-size: var(--fs-label); font-weight: 600; color: #6b7280;
-      text-transform: uppercase; letter-spacing: .05em; margin-bottom: .3rem;
+    /* ── Cancel-ride confirmation modal ── */
+    .pc-modal .modal-content {
+      border-radius: 16px; border: 1px solid #e2e8f0;
+      box-shadow: 0 24px 60px rgba(15,23,42,.18);
     }
-    .pc-modal .form-select, .pc-modal .form-control {
-      font-size: var(--fs-input); border: 1px solid #e5e7eb; border-radius: 8px;
-      padding: .42rem .7rem; color: #111827;
-      transition: border-color .15s, box-shadow .15s;
+    .cancel-icon-wrap {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: #fef2f2;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto;
+      box-shadow: 0 0 0 8px #fff5f5;
     }
-    .pc-modal .form-select:focus, .pc-modal .form-control:focus {
-      border-color: #f37a20; box-shadow: 0 0 0 3px rgba(243,122,32,.12); outline: none;
+    .cancel-icon-wrap i { color: #dc2626; font-size: 1.55rem; }
+    .cancel-title {
+      font-size: 1.1rem; font-weight: 700; color: #0f172a;
+      letter-spacing: -.01em;
     }
+    .cancel-sub { font-size: .85rem; color: #64748b; line-height: 1.5; }
+
     .ride-summary {
       background: #f8fafc; border: 1px solid #e2e8f0;
-      border-radius: 8px; padding: .65rem .85rem;
-      font-size: var(--fs-small); color: #475569;
-      line-height: 1.5;
+      border-radius: 10px; padding: .85rem 1rem;
+      font-size: .85rem; color: #475569;
+      line-height: 1.55; text-align: left;
     }
-    .ride-summary strong { color: #0f172a; }
-    .btn-pc-primary {
-      background: #f37a20; color: #fff; border: none;
-      border-radius: 8px; font-size: var(--fs-btn); font-weight: 600;
-      padding: .45rem 1.1rem; transition: background .15s;
+    .ride-summary .rs-name {
+      font-size: .92rem; font-weight: 600; color: #0f172a;
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 6px;
     }
-    .btn-pc-primary:hover { background: #e06910; color: #fff; }
+    .ride-summary .rs-line {
+      display: flex; align-items: flex-start; gap: 8px;
+      font-size: .82rem; color: #475569;
+      padding: 2px 0;
+    }
+    .ride-summary .rs-line i {
+      color: #94a3b8; font-size: .82rem; width: 14px; margin-top: 3px;
+      flex-shrink: 0;
+    }
+    .ride-summary .rs-line span { word-break: break-word; }
+
+    .btn-pc-danger {
+      background: #dc2626; color: #fff; border: 1px solid #dc2626;
+      border-radius: 9px; font-size: var(--fs-btn); font-weight: 600;
+      padding: .55rem 1.1rem;
+      display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+      transition: background .15s, border-color .15s, box-shadow .15s;
+      cursor: pointer;
+    }
+    .btn-pc-danger:hover {
+      background: #b91c1c; border-color: #b91c1c; color: #fff;
+      box-shadow: 0 6px 18px rgba(220,38,38,.25);
+    }
+    .btn-pc-danger:disabled { opacity: .55; cursor: not-allowed; box-shadow: none; }
+
     .btn-pc-cancel {
-      background: #fff; color: #374151; border: 1px solid #e5e7eb;
-      border-radius: 8px; font-size: var(--fs-btn); font-weight: 500;
-      padding: .45rem 1.1rem; transition: background .15s;
+      background: #fff; color: #334155; border: 1px solid #e2e8f0;
+      border-radius: 9px; font-size: var(--fs-btn); font-weight: 500;
+      padding: .55rem 1.1rem; transition: background .15s;
+      display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
     }
-    .btn-pc-cancel:hover { background: #f9fafb; }
+    .btn-pc-cancel:hover { background: #f1f5f9; }
+
+    /* ── Cancel-reason picker ── */
+    .cancel-reason-label {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+      color: #475569; margin: 4px 0 8px;
+      text-align: left;
+    }
+    .cancel-reason-list {
+      display: flex; flex-direction: column; gap: 6px;
+      max-height: 200px; overflow-y: auto;
+      padding: 2px 2px 2px 2px;
+    }
+    .cancel-reason-opt {
+      position: relative;
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 9px;
+      background: #fff;
+      cursor: pointer;
+      font-size: .85rem; color: #334155;
+      text-align: left;
+      transition: border-color .12s, background .12s, box-shadow .12s;
+    }
+    .cancel-reason-opt input[type="radio"] {
+      position: absolute; opacity: 0; pointer-events: none;
+    }
+    .cancel-reason-opt:hover { background: #f8fafc; border-color: #cbd5e1; }
+    .cancel-reason-opt.is-selected {
+      border-color: #dc2626;
+      background: #fef2f2;
+      color: #991b1b;
+      box-shadow: 0 0 0 3px rgba(220,38,38,.08);
+      font-weight: 600;
+    }
+    .cancel-reason-opt .ic {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid #cbd5e1;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: border-color .12s, background .12s;
+    }
+    .cancel-reason-opt.is-selected .ic {
+      border-color: #dc2626; background: #dc2626;
+    }
+    .cancel-reason-opt.is-selected .ic::after {
+      content: ''; width: 7px; height: 7px; border-radius: 50%;
+      background: #fff;
+    }
   </style>
 </head>
 <body>
@@ -274,14 +356,19 @@ foreach ($rides as $r) {
                 <td>€<?= htmlspecialchars($r['fare'] ?? '0') ?></td>
                 <td><span class="badge-status <?= $badgeClass ?>" title="<?= htmlspecialchars($status) ?>"><i class="bi <?= $badgeIcon ?>"></i></span></td>
                 <td class="text-end">
-                  <button type="button" class="btn-edit-ride"
-                          data-ride-id="<?= htmlspecialchars((string)($r['id'] ?? '')) ?>"
-                          data-employee="<?= htmlspecialchars($r['employee'] ?? '') ?>"
-                          data-pickup="<?= htmlspecialchars($r['pickup'] ?? '') ?>"
-                          data-destination="<?= htmlspecialchars($r['destination'] ?? '') ?>"
-                          data-status="<?= htmlspecialchars($status) ?>">
-                    <i class="bi bi-pencil"></i> Edit
-                  </button>
+                  <?php if ($status === 'Completed' || $status === 'Cancelled'): ?>
+                    <span class="rh-status-final">—</span>
+                  <?php else: ?>
+                    <button type="button" class="btn-cancel-ride"
+                            data-ride-id="<?= htmlspecialchars((string)($r['id'] ?? '')) ?>"
+                            data-employee="<?= htmlspecialchars($r['employee'] ?? '') ?>"
+                            data-pickup="<?= htmlspecialchars($r['pickup'] ?? '') ?>"
+                            data-destination="<?= htmlspecialchars($r['destination'] ?? '') ?>"
+                            data-status="<?= htmlspecialchars($status) ?>"
+                            title="Cancel this ride">
+                      <i class="bi bi-x-circle"></i> Cancel
+                    </button>
+                  <?php endif; ?>
                 </td>
               </tr>
               <?php endforeach; ?>
@@ -294,45 +381,61 @@ foreach ($rides as $r) {
 
   </main>
 
-  <!-- ── Edit Ride Modal ── -->
-  <div class="modal fade pc-modal" id="editRideModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width:460px">
+  <!-- ── Cancel-Ride Confirmation Modal ── -->
+  <div class="modal fade pc-modal" id="cancelRideModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:440px">
       <div class="modal-content">
 
-        <div class="modal-header">
-          <h5 class="modal-title">Update Ride</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="modal-body p-4 text-center">
+          <div class="cancel-icon-wrap mb-3">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+          </div>
+          <div class="cancel-title mb-2">Cancel this ride?</div>
+          <div class="cancel-sub mb-3">
+            The dispatcher will be notified and this ride will be marked as <strong>Cancelled</strong>.
+            This action cannot be undone.
+          </div>
+
+          <div class="ride-summary">
+            <div class="rs-name">
+              <i class="bi bi-person-fill text-muted"></i>
+              <span id="cancelRideEmployee">—</span>
+            </div>
+            <div class="rs-line"><i class="bi bi-geo-alt-fill"></i><span id="cancelRidePickup">—</span></div>
+            <div class="rs-line"><i class="bi bi-flag-fill"></i><span id="cancelRideDest">—</span></div>
+          </div>
+
+          <div class="cancel-reason-label mt-3">Why are you cancelling?</div>
+          <div class="cancel-reason-list" id="cancelReasonList">
+            <?php
+              $cancelReasons = [
+                'Waiting for long time',
+                'Unable to contact driver',
+                'Driver denied to go to destination',
+                'Driver denied to come to pickup',
+                'Wrong address shown',
+                'The price is not reasonable',
+              ];
+              foreach ($cancelReasons as $reason): ?>
+              <label class="cancel-reason-opt" data-reason="<?= htmlspecialchars($reason) ?>">
+                <input type="radio" name="cancelReason" value="<?= htmlspecialchars($reason) ?>"/>
+                <span class="ic"></span>
+                <span class="txt"><?= htmlspecialchars($reason) ?></span>
+              </label>
+            <?php endforeach; ?>
+          </div>
+
+          <input type="hidden" id="cancelRideId"/>
         </div>
 
-        <form id="editRideForm">
-          <div class="modal-body d-flex flex-column gap-3">
-            <input type="hidden" id="editRideId" name="ride_id"/>
-
-            <div class="ride-summary">
-              <div><strong id="editRideEmployee">—</strong></div>
-              <div><i class="bi bi-geo-alt me-1 text-muted"></i><span id="editRidePickup">—</span></div>
-              <div><i class="bi bi-flag me-1 text-muted"></i><span id="editRideDest">—</span></div>
-            </div>
-
-            <div>
-              <label for="editRideStatus">Status</label>
-              <select class="form-select" id="editRideStatus" name="status" required>
-                <option value="Pending">Pending</option>
-                <option value="Assigned">Assigned</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
-                <option value="Cancelled">Cancelled</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="modal-footer">
-            <button type="button" class="btn-pc-cancel" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn-pc-primary">
-              <i class="bi bi-check2-circle me-1"></i> Save Changes
-            </button>
-          </div>
-        </form>
+        <div class="d-flex gap-2 px-4 pb-4">
+          <button type="button" class="btn-pc-cancel flex-fill" data-bs-dismiss="modal">
+            Keep ride
+          </button>
+          <button type="button" id="cancelRideConfirm" class="btn-pc-danger flex-fill" disabled>
+            <i class="bi bi-x-circle"></i> Yes, cancel ride
+          </button>
+        </div>
 
       </div>
     </div>
@@ -358,58 +461,97 @@ foreach ($rides as $r) {
         document.querySelector('.sidebar')?.classList.remove('active');
     });
 
-    // ── Hook so realtime-rides.js renders the Actions cell on this page ──
+    // ── Hook: realtime-rides.js renders the Actions cell on this page ──
     function escapeAttr(s) {
       return String(s == null ? '' : s)
         .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
         .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     }
     window.rideRowExtraCells = function (ride) {
+      const status = (ride.status || '').toString();
+      // Final statuses can't be cancelled — show a placeholder dash.
+      if (status === 'Completed' || status === 'Cancelled') {
+        return `<td class="text-end"><span class="rh-status-final">—</span></td>`;
+      }
       return `
         <td class="text-end">
-          <button type="button" class="btn-edit-ride"
+          <button type="button" class="btn-cancel-ride"
                   data-ride-id="${escapeAttr(ride.id)}"
                   data-employee="${escapeAttr(ride.employee || '')}"
                   data-pickup="${escapeAttr(ride.pickup || '')}"
                   data-destination="${escapeAttr(ride.destination || '')}"
-                  data-status="${escapeAttr(ride.status || '')}">
-            <i class="bi bi-pencil"></i> Edit
+                  data-status="${escapeAttr(status)}"
+                  title="Cancel this ride">
+            <i class="bi bi-x-circle"></i> Cancel
           </button>
         </td>`;
     };
 
-    // ── Edit ride: open modal ──
-    const editRideModalEl = document.getElementById('editRideModal');
-    const editRideModal   = new bootstrap.Modal(editRideModalEl);
-    document.getElementById('rhTable').addEventListener('click', (e) => {
-      const btn = e.target.closest('.btn-edit-ride');
-      if (!btn) return;
-      document.getElementById('editRideId').value         = btn.dataset.rideId || '';
-      document.getElementById('editRideEmployee').textContent = btn.dataset.employee   || '—';
-      document.getElementById('editRidePickup').textContent   = btn.dataset.pickup     || '—';
-      document.getElementById('editRideDest').textContent     = btn.dataset.destination|| '—';
-      document.getElementById('editRideStatus').value     = btn.dataset.status || 'Pending';
-      editRideModal.show();
+    // ── Cancel ride: open confirmation modal ──
+    const cancelModalEl = document.getElementById('cancelRideModal');
+    const cancelModal   = new bootstrap.Modal(cancelModalEl);
+    const cancelConfirm = document.getElementById('cancelRideConfirm');
+    const cancelReasonList = document.getElementById('cancelReasonList');
+
+    function clearCancelReason() {
+      cancelReasonList.querySelectorAll('.cancel-reason-opt').forEach(o => o.classList.remove('is-selected'));
+      cancelReasonList.querySelectorAll('input[type="radio"]').forEach(r => { r.checked = false; });
+      cancelConfirm.disabled = true;
+    }
+
+    cancelReasonList.addEventListener('click', (e) => {
+      const opt = e.target.closest('.cancel-reason-opt');
+      if (!opt) return;
+      cancelReasonList.querySelectorAll('.cancel-reason-opt').forEach(o => o.classList.remove('is-selected'));
+      opt.classList.add('is-selected');
+      const radio = opt.querySelector('input[type="radio"]');
+      if (radio) radio.checked = true;
+      cancelConfirm.disabled = false;   // unlock confirm only after a reason is chosen
     });
 
-    // ── Edit ride: submit ──
-    document.getElementById('editRideForm').addEventListener('submit', function (e) {
-      e.preventDefault();
-      const submitBtn = this.querySelector('button[type="submit"]');
-      const orig = submitBtn.innerHTML;
-      submitBtn.disabled  = true;
-      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Saving…';
+    // Reset reason every time the modal opens (and on close too).
+    cancelModalEl.addEventListener('show.bs.modal',   clearCancelReason);
+    cancelModalEl.addEventListener('hidden.bs.modal', clearCancelReason);
 
-      const fd = new FormData(this);
+    document.getElementById('rhTable').addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-cancel-ride');
+      if (!btn) return;
+      document.getElementById('cancelRideId').value           = btn.dataset.rideId || '';
+      document.getElementById('cancelRideEmployee').textContent = btn.dataset.employee    || '—';
+      document.getElementById('cancelRidePickup').textContent   = btn.dataset.pickup      || '—';
+      document.getElementById('cancelRideDest').textContent     = btn.dataset.destination || '—';
+      cancelModal.show();
+    });
+
+    // ── Cancel ride: confirm ──
+    cancelConfirm.addEventListener('click', function () {
+      const rideId = document.getElementById('cancelRideId').value;
+      const reason = cancelReasonList.querySelector('input[name="cancelReason"]:checked')?.value || '';
+      if (!rideId) return;
+      if (!reason) {
+        if (typeof showToast === 'function') showToast('Please pick a reason for cancellation.', 'error');
+        return;
+      }
+      const orig = cancelConfirm.innerHTML;
+      cancelConfirm.disabled  = true;
+      cancelConfirm.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Cancelling…';
+
+      const fd = new FormData();
+      fd.append('ride_id', rideId);
+      fd.append('status',  'Cancelled');
+      fd.append('cancel_reason', reason);
+
       fetch('php/edit_ride.php', { method: 'POST', body: fd, credentials: 'same-origin' })
         .then(r => r.json())
         .then(data => {
-          submitBtn.disabled  = false;
-          submitBtn.innerHTML = orig;
-          editRideModal.hide();
+          cancelConfirm.disabled  = false;
+          cancelConfirm.innerHTML = orig;
+          cancelModal.hide();
           if (typeof showToast === 'function') {
-            showToast(data.message || (data.success ? 'Updated' : 'Update failed'),
-                      data.success ? 'success' : 'error');
+            showToast(
+              data.success ? 'Ride cancelled.' : (data.message || 'Failed to cancel ride'),
+              data.success ? 'success' : 'error'
+            );
           }
           if (data.success && typeof window.refreshCorporateRidesDashboard === 'function') {
             window.refreshCorporateRidesDashboard();
@@ -418,8 +560,8 @@ foreach ($rides as $r) {
           }
         })
         .catch(() => {
-          submitBtn.disabled  = false;
-          submitBtn.innerHTML = orig;
+          cancelConfirm.disabled  = false;
+          cancelConfirm.innerHTML = orig;
           if (typeof showToast === 'function') {
             showToast('Network error. Please try again.', 'error');
           }

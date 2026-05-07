@@ -155,9 +155,14 @@ if (!$logoSvg) { $logoSvg = ''; }
       border-radius: 10px;
       box-shadow: 0 10px 24px rgba(15,23,42,.08), 0 2px 6px rgba(15,23,42,.05);
       max-height: 280px; overflow: hidden;
-      z-index: 30;
+      z-index: 1050;
       display: none;
     }
+    /* Make sure the column holding the combo and the combo itself rise
+       above sibling form fields and the next card below. */
+    .emp-combo { z-index: 1050; }
+    #filtersRow .col-md-4:has(.emp-combo) { position: relative; z-index: 5; }
+    .emp-combo.open { z-index: 1051; }
     .emp-combo.open .emp-combo-panel { display: block; }
     .emp-combo-panel .panel-head {
       display: flex; justify-content: space-between; align-items: center;
@@ -206,33 +211,91 @@ if (!$logoSvg) { $logoSvg = ''; }
       font-size: var(--fs-small); color: #94a3b8;
     }
 
-    /* Hero strip — replaces the verbose summary text */
-    .inv-hero {
-      display: flex; align-items: center; gap: .75rem;
-      padding: .9rem 1.1rem;
+    /* Mode tabs — Date Range vs Monthly */
+    .inv-mode-tabs {
+      display: inline-flex;
       border: 1px solid #e2e8f0;
-      background: linear-gradient(180deg, #fffaf4 0%, #ffffff 100%);
       border-radius: 10px;
+      background: #f8fafc;
+      padding: 3px;
+      gap: 2px;
     }
-    .inv-hero .ic {
-      width: 36px; height: 36px; border-radius: 8px;
-      background: #fff4eb; color: #f37a20;
+    .inv-mode-tabs button {
+      font-size: .85rem; font-weight: 500;
+      color: #475569;
+      background: transparent;
+      border: none;
+      padding: .42rem .95rem;
+      border-radius: 7px;
+      cursor: pointer;
+      display: inline-flex; align-items: center; gap: .4rem;
+      transition: background .15s, color .15s;
+    }
+    .inv-mode-tabs button:hover { color: #0f172a; }
+    .inv-mode-tabs button.active {
+      background: #ffffff;
+      color: #0f172a;
+      box-shadow: 0 1px 3px rgba(15,23,42,.05);
+    }
+    .inv-mode-tabs button.active i { color: #f37a20; }
+
+    /* ── HERO STRIP (matches the Meet & Greet aesthetic) ── */
+    .inv-hero {
+      position: relative; overflow: hidden;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      background:
+        radial-gradient(circle at 100% 0%, rgba(243,122,32,.10) 0%, transparent 55%),
+        linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #ffffff;
+      padding: 26px 28px;
+    }
+    .inv-hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+      background-size: 36px 36px;
+      pointer-events: none;
+    }
+    .inv-hero-content { position: relative; z-index: 1; }
+    .inv-hero-title-row {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 8px;
+    }
+    .inv-hero-icon {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      background: rgba(243,122,32,.14);
+      color: #f37a20;
       display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; font-size: 1.05rem;
+      flex-shrink: 0; font-size: 1.25rem;
+      border: 1px solid rgba(243,122,32,.25);
     }
-    .inv-hero .ttl {
-      font-size: var(--fs-body); font-weight: 600; color: #0f172a; line-height: 1.25;
+    .inv-hero-title { font-size: 1.5rem; font-weight: 700; letter-spacing: -.01em; line-height: 1.2; }
+    .inv-hero-sub   { font-size: .9rem;  color: rgba(255,255,255,.65); line-height: 1.55; max-width: 640px; }
+
+    .inv-hero-pills {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-top: 16px;
     }
-    .inv-hero .desc {
-      font-size: var(--fs-small); color: #64748b; margin-top: 2px; line-height: 1.35;
+    .inv-hero-pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.1);
+      font-size: .76rem; font-weight: 500;
+      color: rgba(255,255,255,.85);
     }
-    .inv-hero .badge-vat {
-      margin-left: auto;
-      font-size: 11px; font-weight: 600; letter-spacing: .03em;
-      padding: .25rem .55rem; border-radius: 999px;
-      background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;
-      white-space: nowrap;
+    .inv-hero-pill i { color: #f37a20; font-size: .8rem; }
+    .inv-hero-pill.is-success {
+      background: rgba(16,185,129,.12);
+      border-color: rgba(16,185,129,.3);
+      color: #6ee7b7;
     }
+    .inv-hero-pill.is-success i { color: #34d399; }
 
     /* Rides table inside invoice page */
     .inv-rides-table thead th {
@@ -394,6 +457,216 @@ if (!$logoSvg) { $logoSvg = ''; }
       font-size: 10.5px; color: #94a3b8; text-align: center; font-style: italic;
     }
     .invoice-template .text-right { text-align: right; }
+
+    /* ════════════════════════════════════════════════════════════════
+       MONTHLY STATEMENT TEMPLATE — distinct visual treatment used when
+       the user generates an invoice in "By Month" mode. Same A4 portrait
+       envelope (794px wide) as the date-range template, but with a
+       branded dark hero band, month-as-focal-point, stat cards, and a
+       summary panel — instead of a tfoot-style total.
+       ════════════════════════════════════════════════════════════════ */
+    .invoice-monthly {
+      width: 794px;
+      padding: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #0f172a; background: #ffffff;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .im-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 22px 32px 18px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .im-logo { display: flex; align-items: center; }
+    .im-logo svg { height: 56px; width: auto; display: block; }
+    .im-tag-pill {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .14em;
+      color: #f37a20;
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: #fff4eb;
+      border: 1px solid #fde2c4;
+    }
+
+    .im-band {
+      position: relative;
+      padding: 28px 32px 26px;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #ffffff;
+      overflow: hidden;
+    }
+    .im-band::after {
+      content: '';
+      position: absolute; top: -40px; right: -40px;
+      width: 280px; height: 280px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(243,122,32,.22) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .im-band-label {
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .12em;
+      color: rgba(255,255,255,.55);
+      margin-bottom: 6px;
+    }
+    .im-band-month {
+      font-size: 30px; font-weight: 800;
+      color: #ffffff; letter-spacing: -.01em;
+      line-height: 1.1; margin: 0 0 14px;
+    }
+    .im-band-month .yr {
+      color: #f37a20; font-weight: 800;
+    }
+    .im-band-meta {
+      display: flex; flex-wrap: wrap; gap: 22px;
+      position: relative; z-index: 1;
+    }
+    .im-band-meta > div { line-height: 1.3; }
+    .im-band-meta .k {
+      display: block; font-size: 9.5px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .1em;
+      color: rgba(255,255,255,.5);
+      margin-bottom: 2px;
+    }
+    .im-band-meta .v {
+      font-size: 12.5px; font-weight: 600; color: #ffffff;
+    }
+
+    .im-parties {
+      display: flex; gap: 28px;
+      padding: 22px 32px 16px;
+    }
+    .im-col { flex: 1; min-width: 0; line-height: 1.4; }
+    .im-col-right { text-align: right; }
+    .im-lbl {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .1em;
+      color: #94a3b8; margin-bottom: 4px;
+    }
+    .im-name {
+      font-size: 14px; font-weight: 700; color: #0f172a;
+      word-break: break-word;
+    }
+    .im-line {
+      font-size: 11.5px; color: #475569; margin-top: 1px;
+      word-break: break-word;
+    }
+
+    /* Stat cards row */
+    .im-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      padding: 8px 32px 22px;
+    }
+    .im-stat {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+    .im-stat-icon {
+      width: 38px; height: 38px;
+      border-radius: 9px;
+      background: #ffffff;
+      color: #475569;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 1rem;
+      border: 1px solid #e2e8f0;
+    }
+    .im-stat-meta { line-height: 1.3; }
+    .im-stat-lbl {
+      font-size: 9.5px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .08em;
+      color: #94a3b8; margin-bottom: 1px;
+    }
+    .im-stat-val { font-size: 16px; font-weight: 700; color: #0f172a; }
+    .im-stat.im-stat-accent {
+      background: #fff4eb;
+      border-color: #fde2c4;
+    }
+    .im-stat.im-stat-accent .im-stat-icon {
+      background: #f37a20; color: #ffffff; border-color: #f37a20;
+    }
+    .im-stat.im-stat-accent .im-stat-val { color: #92400e; }
+
+    .im-section {
+      padding: 6px 32px 8px;
+    }
+    .im-section-title {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .1em;
+      color: #475569; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .im-section-title::after {
+      content: '';
+      flex: 1; height: 1px; background: #e2e8f0;
+    }
+
+    /* Itemised table — alternating row backgrounds for readability */
+    .im-tbl {
+      width: 100%; border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .im-tbl col.col-num    { width: 26px; }
+    .im-tbl col.col-date   { width: 110px; }
+    .im-tbl col.col-charge { width: 80px; }
+    .im-tbl thead th {
+      font-size: 9.5px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .08em;
+      color: #64748b;
+      padding: 8px 10px; text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+      background: #f8fafc;
+    }
+    .im-tbl tbody td {
+      padding: 8px 10px; font-size: 11px; color: #334155;
+      border-bottom: 1px solid #f1f5f9; vertical-align: top;
+      word-break: break-word; overflow-wrap: anywhere;
+    }
+    .im-tbl tbody tr:nth-child(even) td { background: #fbfcfd; }
+    .im-tbl tbody td.nowrap { white-space: nowrap; word-break: normal; overflow-wrap: normal; }
+    .im-tbl .text-right { text-align: right; }
+
+    /* Totals card — right-aligned summary */
+    .im-totals {
+      padding: 14px 32px 22px;
+      display: flex; justify-content: flex-end;
+    }
+    .im-totals-card {
+      width: 320px;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      background: #ffffff;
+      padding: 14px 18px;
+      box-shadow: 0 1px 2px rgba(15,23,42,.04);
+    }
+    .im-totals-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 12.5px; color: #475569;
+      padding: 6px 0;
+    }
+    .im-totals-row span:last-child { color: #0f172a; font-weight: 600; }
+    .im-totals-row.im-totals-grand {
+      border-top: 1px solid #e2e8f0;
+      margin-top: 6px;
+      padding-top: 12px;
+      font-size: 14px; font-weight: 700; color: #0f172a;
+    }
+    .im-totals-row.im-totals-grand span:last-child {
+      color: #f37a20; font-size: 16px;
+    }
+
+    .im-foot {
+      padding: 16px 32px 22px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 10.5px; color: #94a3b8;
+      text-align: center; font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -402,25 +675,47 @@ if (!$logoSvg) { $logoSvg = ''; }
 
   <main class="main-content p-4">
 
+    <!-- ── HERO ── -->
+    <div class="inv-hero mb-4">
+      <div class="inv-hero-content">
+        <div class="inv-hero-title-row">
+          <div class="inv-hero-icon"><i class="bi bi-receipt-cutoff"></i></div>
+          <div>
+            <div class="inv-hero-title">Generate Professional Invoices</div>
+            <div class="inv-hero-sub">
+              Itemised, VAT-inclusive and fully branded PDF invoices &mdash; ready to send straight
+              to your finance team. Choose a date range or summarise an entire month.
+            </div>
+          </div>
+        </div>
+        <div class="inv-hero-pills">
+          <span class="inv-hero-pill"><i class="bi bi-file-earmark-pdf-fill"></i> A4 portrait PDF</span>
+          <span class="inv-hero-pill is-success"><i class="bi bi-percent"></i> VAT 23% included</span>
+          <span class="inv-hero-pill"><i class="bi bi-list-check"></i> Itemised rides</span>
+          <span class="inv-hero-pill"><i class="bi bi-calendar-month"></i> Monthly summary</span>
+          <span class="inv-hero-pill"><i class="bi bi-send-fill"></i> Ready to send</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Form card ── -->
     <div class="card inv-card border-0 mb-4">
       <div class="card-body p-4">
-        <div class="inv-page-head mb-3">
-          <h6 class="mb-0">Generate Invoice</h6>
-          <span class="sub d-block mt-1">Pick an employee, select their completed rides, then download a PDF invoice.</span>
-        </div>
 
-        <!-- Hero strip -->
-        <div class="inv-hero mb-4">
-          <div class="ic"><i class="bi bi-receipt"></i></div>
-          <div class="flex-grow-1">
-            <div class="ttl">Bill completed rides in seconds.</div>
-            <div class="desc">Itemised, branded PDF invoices &mdash; ready to send to your finance team.</div>
+        <!-- Mode toggle: by date range or by month -->
+        <div class="mb-3">
+          <div class="inv-mode-tabs" role="tablist">
+            <button type="button" class="active" data-mode="range">
+              <i class="bi bi-calendar-range"></i> By Date Range
+            </button>
+            <button type="button" data-mode="month">
+              <i class="bi bi-calendar-month"></i> By Month
+            </button>
           </div>
-          <span class="badge-vat">VAT 23% included</span>
         </div>
 
         <!-- Step 1 + filters -->
-        <div class="row g-3 align-items-end">
+        <div class="row g-3 align-items-end" id="filtersRow">
           <div class="col-md-4">
             <label class="inv-label">Employee</label>
             <div class="emp-combo" id="empCombo">
@@ -455,15 +750,27 @@ if (!$logoSvg) { $logoSvg = ''; }
               <?php endforeach; ?>
             </select>
           </div>
-          <div class="col-md-3">
+
+          <!-- Range-mode filters -->
+          <div class="col-md-2 mode-range">
             <label class="inv-label">From</label>
             <input type="date" id="fromDate" class="form-control"/>
           </div>
-          <div class="col-md-3">
+          <div class="col-md-2 mode-range">
             <label class="inv-label">To</label>
             <input type="date" id="toDate" class="form-control"/>
           </div>
-          <div class="col-md-2 d-flex">
+
+          <!-- Month-mode filter -->
+          <div class="col-md-4 mode-month" style="display:none">
+            <label class="inv-label">Invoice Month</label>
+            <input type="text" id="monthPick" class="form-control"
+                   placeholder="Select a month"
+                   onfocus="this.type='month'"
+                   onblur="if(!this.value)this.type='text'"/>
+          </div>
+
+          <div class="col-md-4 d-flex">
             <button id="loadRidesBtn" class="btn-pc-primary w-100 justify-content-center" disabled>
               <i class="bi bi-search"></i> Load Rides
             </button>
@@ -545,6 +852,7 @@ if (!$logoSvg) { $logoSvg = ''; }
           <div class="meta">
             <div><strong>Invoice #:</strong> <span id="tplInvNo">—</span></div>
             <div><strong>Date:</strong> <span id="tplInvDate">—</span></div>
+            <div><strong>Period:</strong> <span id="tplInvPeriod">—</span></div>
           </div>
         </div>
       </div>
@@ -604,6 +912,101 @@ if (!$logoSvg) { $logoSvg = ''; }
         This is a system-generated invoice and does not require a signature or stamp to be valid.
       </div>
     </div>
+
+    <!-- ─────── MONTHLY STATEMENT TEMPLATE (used when mode = month) ─────── -->
+    <div class="invoice-template invoice-monthly" id="invoiceMonthlyTemplate">
+      <header class="im-header">
+        <div class="im-logo"><?= $logoSvg ?></div>
+        <div class="im-tag-pill">Monthly Statement</div>
+      </header>
+
+      <section class="im-band">
+        <div class="im-band-label">Invoice Summary for the Month of</div>
+        <h1 class="im-band-month"><span id="tplMonthlyMonthName">—</span> <span class="yr" id="tplMonthlyYear"></span></h1>
+        <div class="im-band-meta">
+          <div><span class="k">Invoice #</span><span class="v" id="tplMonthlyInvNo">—</span></div>
+          <div><span class="k">Issued</span><span class="v" id="tplMonthlyInvDate">—</span></div>
+          <div><span class="k">Period</span><span class="v" id="tplMonthlyPeriod">—</span></div>
+          <div><span class="k">Currency</span><span class="v">EUR (€)</span></div>
+        </div>
+      </section>
+
+      <section class="im-parties">
+        <div class="im-col">
+          <div class="im-lbl">Billed To</div>
+          <div class="im-name" id="tplMonthlyEmpName">—</div>
+          <div class="im-line" id="tplMonthlyEmpDept"></div>
+          <div class="im-line" id="tplMonthlyEmpEmail"></div>
+          <div class="im-line" id="tplMonthlyEmpPhone"></div>
+        </div>
+        <div class="im-col im-col-right">
+          <div class="im-lbl">From</div>
+          <div class="im-name" id="tplMonthlyCoName"><?= htmlspecialchars($company['name']) ?></div>
+          <div class="im-line" id="tplMonthlyCoAddr"><?= htmlspecialchars($company['address']) ?></div>
+          <div class="im-line" id="tplMonthlyCoEmail"><?= htmlspecialchars($company['email']) ?></div>
+          <div class="im-line" id="tplMonthlyCoPhone"><?= htmlspecialchars($company['phone']) ?></div>
+        </div>
+      </section>
+
+      <section class="im-stats">
+        <div class="im-stat">
+          <div class="im-stat-icon"><i class="bi bi-car-front-fill"></i></div>
+          <div class="im-stat-meta">
+            <div class="im-stat-lbl">Total Rides</div>
+            <div class="im-stat-val" id="tplMonthlyRides">0</div>
+          </div>
+        </div>
+        <div class="im-stat">
+          <div class="im-stat-icon"><i class="bi bi-signpost-2-fill"></i></div>
+          <div class="im-stat-meta">
+            <div class="im-stat-lbl">Distance</div>
+            <div class="im-stat-val" id="tplMonthlyDist">0 km</div>
+          </div>
+        </div>
+        <div class="im-stat im-stat-accent">
+          <div class="im-stat-icon"><i class="bi bi-cash-coin"></i></div>
+          <div class="im-stat-meta">
+            <div class="im-stat-lbl">Total (incl. VAT)</div>
+            <div class="im-stat-val" id="tplMonthlyTotalAmt">€0.00</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="im-section">
+        <div class="im-section-title">Itemised Rides</div>
+        <table class="im-tbl">
+          <colgroup>
+            <col class="col-num"/>
+            <col class="col-date"/>
+            <col/>
+            <col/>
+            <col class="col-charge"/>
+          </colgroup>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Date</th>
+              <th>Pickup</th>
+              <th>Dropoff</th>
+              <th class="text-right">Charge</th>
+            </tr>
+          </thead>
+          <tbody id="tplMonthlyRidesBody"></tbody>
+        </table>
+      </section>
+
+      <section class="im-totals">
+        <div class="im-totals-card">
+          <div class="im-totals-row"><span>Subtotal</span><span id="tplMonthlySubtotal">€0.00</span></div>
+          <div class="im-totals-row"><span>VAT (23%)</span><span id="tplMonthlyVat">€0.00</span></div>
+          <div class="im-totals-row im-totals-grand"><span>Total Due</span><span id="tplMonthlyGrandTotal">€0.00</span></div>
+        </div>
+      </section>
+
+      <div class="im-foot">
+        This is a system-generated monthly statement and does not require a signature or stamp to be valid.
+      </div>
+    </div>
   </div>
 
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -624,6 +1027,7 @@ if (!$logoSvg) { $logoSvg = ''; }
     });
 
     const VAT_RATE = 0.23;
+    let invMode = 'range'; // 'range' | 'month'
     const empSelect      = document.getElementById('empSelect');
     const empCombo       = document.getElementById('empCombo');
     const empComboInput  = document.getElementById('empComboInput');
@@ -631,6 +1035,10 @@ if (!$logoSvg) { $logoSvg = ''; }
     const empComboPanel  = document.getElementById('empComboPanel');
     const empComboList   = document.getElementById('empComboList');
     const empComboClear  = document.getElementById('empComboClear');
+    const monthPick    = document.getElementById('monthPick');
+    const modeTabs     = document.querySelectorAll('.inv-mode-tabs button');
+    const modeRangeEls = document.querySelectorAll('.mode-range');
+    const modeMonthEls = document.querySelectorAll('.mode-month');
     const fromDate     = document.getElementById('fromDate');
     const toDate       = document.getElementById('toDate');
     const loadRidesBtn = document.getElementById('loadRidesBtn');
@@ -659,11 +1067,30 @@ if (!$logoSvg) { $logoSvg = ''; }
       el.textContent = v || (dashIfEmpty ? '—' : '');
       el.classList.toggle('muted', !v);
     }
+    function fmtDateLong(yyyyMmDd) {
+      const d = new Date(yyyyMmDd + 'T00:00:00');
+      if (isNaN(d.getTime())) return yyyyMmDd;
+      return fmtDateOnly(d);
+    }
+    function monthBounds(monthStr) {
+      // monthStr is "YYYY-MM"
+      if (!monthStr) return null;
+      const [y, m] = monthStr.split('-').map(Number);
+      const start = new Date(y, m - 1, 1);
+      const end   = new Date(y, m,     0); // last day of month
+      const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      const monthName = ['January','February','March','April','May','June','July','August','September','October','November','December'][m-1];
+      return { from: ymd(start), to: ymd(end), label: `${monthName} ${y}` };
+    }
     function periodLabel() {
+      if (invMode === 'month') {
+        const b = monthBounds(monthPick.value);
+        return b ? b.label : 'Pick a month';
+      }
       const f = fromDate.value, t = toDate.value;
-      if (f && t) return `${f} → ${t}`;
-      if (f)      return `From ${f}`;
-      if (t)      return `Up to ${t}`;
+      if (f && t) return `${fmtDateLong(f)} → ${fmtDateLong(t)}`;
+      if (f)      return `From ${fmtDateLong(f)}`;
+      if (t)      return `Up to ${fmtDateLong(t)}`;
       return 'All time';
     }
     function refreshBillDetails() {
@@ -829,19 +1256,57 @@ if (!$logoSvg) { $logoSvg = ''; }
     });
     fromDate.addEventListener('change', refreshBillDetails);
     toDate.addEventListener('change', refreshBillDetails);
+    monthPick.addEventListener('change', refreshBillDetails);
+
+    // ── Mode tabs (Date Range / Monthly) ──
+    function applyMode(mode) {
+      invMode = mode;
+      modeTabs.forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+      modeRangeEls.forEach(el => el.style.display = mode === 'range' ? '' : 'none');
+      modeMonthEls.forEach(el => el.style.display = mode === 'month' ? '' : 'none');
+      // Reset filter values when switching mode for clarity
+      if (mode === 'month') {
+        fromDate.value = '';
+        toDate.value   = '';
+      } else {
+        monthPick.value = '';
+        monthPick.type  = 'text';   // restore placeholder
+      }
+      // Hide previously-loaded results since the period just changed
+      ridesCard.style.display  = 'none';
+      totalsCard.style.display = 'none';
+      currentRides = [];
+      refreshBillDetails();
+    }
+    modeTabs.forEach(b => b.addEventListener('click', () => applyMode(b.dataset.mode)));
 
     loadRidesBtn.addEventListener('click', loadRides);
 
     function loadRides() {
       const eid = empSelect.value;
       if (!eid) return;
+
+      // Resolve from/to depending on mode
+      let from = '', to = '';
+      if (invMode === 'month') {
+        if (!monthPick.value) {
+          renderEmpty('Please pick a month first.');
+          return;
+        }
+        const b = monthBounds(monthPick.value);
+        if (b) { from = b.from; to = b.to; }
+      } else {
+        from = fromDate.value || '';
+        to   = toDate.value   || '';
+      }
+
       loadRidesBtn.disabled = true;
       const orig = loadRidesBtn.innerHTML;
       loadRidesBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Loading…';
 
       const params = new URLSearchParams({ employee_id: eid });
-      if (fromDate.value) params.set('from', fromDate.value);
-      if (toDate.value)   params.set('to',   toDate.value);
+      if (from) params.set('from', from);
+      if (to)   params.set('to',   to);
 
       fetch('php/invoice_rides.php?' + params.toString(), { credentials: 'same-origin', cache: 'no-store' })
         .then(r => r.json())
@@ -956,6 +1421,44 @@ if (!$logoSvg) { $logoSvg = ''; }
       return `INV-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${seq}`;
     }
 
+    // Wipe form back to initial state — called after a successful PDF download
+    function resetInvoiceForm() {
+      // Hidden select
+      empSelect.value = '';
+      empCombo.classList.remove('has-value');
+      empComboSearch.value = '';
+      comboFilter = '';
+      comboActiveIdx = -1;
+
+      // Filters
+      fromDate.value  = '';
+      toDate.value    = '';
+      monthPick.value = '';
+      monthPick.type  = 'text';     // restore placeholder
+
+      // Mode back to default
+      applyMode('range');
+
+      // Hide result panels & disable buttons
+      ridesCard.style.display  = 'none';
+      totalsCard.style.display = 'none';
+      ridesContainer.innerHTML = '<div class="inv-rides-empty">No rides loaded yet.</div>';
+      currentRides = [];
+      loadRidesBtn.disabled = true;
+      generateBtn.disabled  = true;
+      selectAll.checked = false;
+      selectAll.indeterminate = false;
+
+      // Totals back to zero
+      selCount.textContent    = 0;
+      selSubtotal.textContent = fmtMoney(0);
+      selVat.textContent      = fmtMoney(0);
+      selTotal.textContent    = fmtMoney(0);
+
+      refreshBillDetails();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
     generateBtn.addEventListener('click', () => {
       const sel = selectedRides();
       if (!sel.length) return;
@@ -973,36 +1476,85 @@ if (!$logoSvg) { $logoSvg = ''; }
       const invNo   = makeInvoiceNumber();
       const invDate = fmtDateOnly(new Date());
 
-      document.getElementById('tplInvNo').textContent   = invNo;
-      document.getElementById('tplInvDate').textContent = invDate;
-      document.getElementById('tplEmpName').textContent  = empName || '—';
-      document.getElementById('tplEmpDept').textContent  = empDept;
-      document.getElementById('tplEmpEmail').textContent = empEmail;
-      document.getElementById('tplEmpPhone').textContent = empPhone;
+      // ── Choose which template to render based on the active mode ──
+      const isMonthly = invMode === 'month' && !!monthPick.value;
+      const monthInfo = isMonthly ? monthBounds(monthPick.value) : null;
 
-      const tbody = document.getElementById('tplRides');
-      tbody.innerHTML = sel.map((r, i) => `
-        <tr>
-          <td>${i + 1}</td>
-          <td class="nowrap">${escapeHtml(fmtDate(r.pickupTime))}</td>
-          <td>${escapeHtml(r.pickup)}</td>
-          <td>${escapeHtml(r.destination)}</td>
-          <td class="text-right nowrap">${fmtMoney(r.charge)}</td>
-        </tr>
-      `).join('');
-      document.getElementById('tplSubtotal').textContent = fmtMoney(subtotal);
-      document.getElementById('tplVat').textContent      = fmtMoney(vat);
-      document.getElementById('tplTotal').textContent    = fmtMoney(total);
+      if (isMonthly) {
+        // Populate the MONTHLY STATEMENT template
+        const [monthName, yearStr] = (monthInfo?.label || '').split(' ');
+        document.getElementById('tplMonthlyMonthName').textContent = (monthName || '').toUpperCase();
+        document.getElementById('tplMonthlyYear').textContent      = yearStr || '';
+        document.getElementById('tplMonthlyInvNo').textContent     = invNo;
+        document.getElementById('tplMonthlyInvDate').textContent   = invDate;
+        document.getElementById('tplMonthlyPeriod').textContent    = `${fmtDateLong(monthInfo.from)} → ${fmtDateLong(monthInfo.to)}`;
+        document.getElementById('tplMonthlyEmpName').textContent   = empName || '—';
+        document.getElementById('tplMonthlyEmpDept').textContent   = empDept;
+        document.getElementById('tplMonthlyEmpEmail').textContent  = empEmail;
+        document.getElementById('tplMonthlyEmpPhone').textContent  = empPhone;
 
-      const safeName = (empName || 'employee').replace(/[^a-z0-9]+/gi, '_');
-      const filename = `${invNo}_${safeName}.pdf`;
+        // Stat cards
+        const totalDistance = sel.reduce((a, r) => a + (Number(r.distance) || 0), 0);
+        document.getElementById('tplMonthlyRides').textContent     = sel.length;
+        document.getElementById('tplMonthlyDist').textContent      = `${totalDistance.toFixed(1)} km`;
+        document.getElementById('tplMonthlyTotalAmt').textContent  = fmtMoney(total);
+
+        // Rides body
+        const mTbody = document.getElementById('tplMonthlyRidesBody');
+        mTbody.innerHTML = sel.map((r, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td class="nowrap">${escapeHtml(fmtDate(r.pickupTime))}</td>
+            <td>${escapeHtml(r.pickup)}</td>
+            <td>${escapeHtml(r.destination)}</td>
+            <td class="text-right nowrap">${fmtMoney(r.charge)}</td>
+          </tr>
+        `).join('');
+        document.getElementById('tplMonthlySubtotal').textContent   = fmtMoney(subtotal);
+        document.getElementById('tplMonthlyVat').textContent        = fmtMoney(vat);
+        document.getElementById('tplMonthlyGrandTotal').textContent = fmtMoney(total);
+      } else {
+        // Populate the DATE-RANGE template (existing layout — untouched)
+        document.getElementById('tplInvNo').textContent     = invNo;
+        document.getElementById('tplInvDate').textContent   = invDate;
+        document.getElementById('tplInvPeriod').textContent = periodLabel();
+        document.getElementById('tplEmpName').textContent   = empName || '—';
+        document.getElementById('tplEmpDept').textContent   = empDept;
+        document.getElementById('tplEmpEmail').textContent  = empEmail;
+        document.getElementById('tplEmpPhone').textContent  = empPhone;
+
+        const tbody = document.getElementById('tplRides');
+        tbody.innerHTML = sel.map((r, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td class="nowrap">${escapeHtml(fmtDate(r.pickupTime))}</td>
+            <td>${escapeHtml(r.pickup)}</td>
+            <td>${escapeHtml(r.destination)}</td>
+            <td class="text-right nowrap">${fmtMoney(r.charge)}</td>
+          </tr>
+        `).join('');
+        document.getElementById('tplSubtotal').textContent = fmtMoney(subtotal);
+        document.getElementById('tplVat').textContent      = fmtMoney(vat);
+        document.getElementById('tplTotal').textContent    = fmtMoney(total);
+      }
+
+      const safeName   = (empName || 'employee').replace(/[^a-z0-9]+/gi, '_');
+      const periodTag  = (invMode === 'month' && monthPick.value)
+        ? '_' + monthPick.value      // e.g. 2026-05
+        : '';
+      const filenamePrefix = isMonthly ? 'STMT' : invNo;
+      const filename       = isMonthly
+        ? `${filenamePrefix}_${safeName}${periodTag}.pdf`
+        : `${invNo}_${safeName}${periodTag}.pdf`;
 
       const orig = generateBtn.innerHTML;
       generateBtn.disabled = true;
       generateBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Generating…';
 
       const stage   = document.querySelector('.inv-pdf-stage');
-      const element = document.getElementById('invoiceTemplate');
+      // Render whichever template matches the current mode; the other one
+      // stays in the DOM but is not captured.
+      const element = document.getElementById(isMonthly ? 'invoiceMonthlyTemplate' : 'invoiceTemplate');
 
       // Move template on-screen but invisible so html2canvas measures correctly
       const prevLeft = stage.style.left;
@@ -1057,6 +1609,7 @@ if (!$logoSvg) { $logoSvg = ''; }
           pdf.save(filename);
           generateBtn.disabled = false;
           generateBtn.innerHTML = orig;
+          resetInvoiceForm();
         } catch (err) {
           stage.style.left    = prevLeft || '-10000px';
           stage.style.opacity = '';

@@ -153,42 +153,64 @@
     }
   }
 
+  // ── Single-flight refresh: never run two fetches in parallel ──
   let refreshDebounceTimer = null;
+  let refreshInFlight = false;
+  let refreshPending = false;          // a request came in while one was running
+  let lastRefreshAt = 0;
+  const MIN_REFRESH_GAP_MS = 4000;     // throttle floor — never fetch more often than this
+
+  function doFetchSnapshot() {
+    if (refreshInFlight) { refreshPending = true; return; }
+    refreshInFlight = true;
+    lastRefreshAt = Date.now();
+    fetch(snapshotUrl, { credentials: 'same-origin', cache: 'no-store' })
+      .then((res) => {
+        if (!res.ok) {
+          console.warn('[RealtimeRides] snapshot HTTP', res.status, res.statusText);
+          return null;
+        }
+        const ct = res.headers.get('Content-Type') || '';
+        if (!ct.includes('application/json')) {
+          console.warn('[RealtimeRides] snapshot not JSON, got', ct);
+          return null;
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (!data || !data.success) return;
+        try {
+          notifyAssignedRides(data.rides || []);
+          renderRides(data.rides || []);
+          setStats(data.stats || {});
+        } catch (e) {
+          console.error('[RealtimeRides] render error:', e);
+        }
+      })
+      .catch((err) => { console.error('[RealtimeRides] refresh failed:', err); })
+      .finally(() => {
+        refreshInFlight = false;
+        if (refreshPending) {
+          refreshPending = false;
+          // honour the throttle floor between coalesced refreshes
+          const wait = Math.max(0, MIN_REFRESH_GAP_MS - (Date.now() - lastRefreshAt));
+          setTimeout(doFetchSnapshot, wait);
+        }
+      });
+  }
+
   function refreshRides() {
     if (refreshDebounceTimer) clearTimeout(refreshDebounceTimer);
     refreshDebounceTimer = setTimeout(() => {
       refreshDebounceTimer = null;
-      fetch(snapshotUrl, { credentials: 'same-origin', cache: 'no-store' })
-        .then((res) => {
-          if (!res.ok) {
-            console.warn('[RealtimeRides] snapshot HTTP', res.status, res.statusText);
-            return null;
-          }
-          const ct = res.headers.get('Content-Type') || '';
-          if (!ct.includes('application/json')) {
-            console.warn('[RealtimeRides] snapshot not JSON, got', ct);
-            return null;
-          }
-          return res.json();
-        })
-        .then((data) => {
-          if (!data) return;
-          if (!data.success) {
-            console.warn('[RealtimeRides] snapshot rejected:', data.message || data);
-            return;
-          }
-          try {
-            notifyAssignedRides(data.rides || []);
-            renderRides(data.rides || []);
-            setStats(data.stats || {});
-          } catch (e) {
-            console.error('[RealtimeRides] render error:', e);
-          }
-        })
-        .catch((err) => {
-          console.error('[RealtimeRides] refresh failed:', err);
-        });
-    }, 120);
+      // Throttle: enforce a minimum gap between sequential fetches
+      const since = Date.now() - lastRefreshAt;
+      if (since < MIN_REFRESH_GAP_MS && !refreshInFlight) {
+        setTimeout(doFetchSnapshot, MIN_REFRESH_GAP_MS - since);
+      } else {
+        doFetchSnapshot();
+      }
+    }, 250);
   }
 
   window.refreshCorporateRidesDashboard = refreshRides;
@@ -198,10 +220,12 @@
   if (hasRidesTable || hasDashboardStats) {
     const pollCfg = window.RIDES_REALTIME_CONFIG || {};
     const rawPoll = pollCfg.pollIntervalMs;
-    let pollMs = 10000;
+    // Default poll interval bumped from 10s → 60s. The realtime channel
+    // (below) handles immediate updates; polling is just a safety net.
+    let pollMs = 60000;
     if (rawPoll === 0 || rawPoll === false) {
       pollMs = 0;
-    } else if (typeof rawPoll === 'number' && rawPoll >= 5000) {
+    } else if (typeof rawPoll === 'number' && rawPoll >= 15000) {
       pollMs = rawPoll;
     }
     if (pollMs > 0) {
@@ -225,26 +249,38 @@
     });
   }
 
+  // ── Supabase Realtime (single-subscribe guard) ──
   const cfg = window.RIDES_REALTIME_CONFIG || {};
   const supabaseNs = typeof window.supabase !== 'undefined' ? window.supabase : null;
-  if (cfg.supabaseUrl && cfg.supabaseAnonKey && cfg.cid && supabaseNs && typeof supabaseNs.createClient === 'function') {
-    const supabaseClient = supabaseNs.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
-    supabaseClient
-      .channel(`corporate-rides-${cfg.cid}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'corporate_rides',
-          filter: `cid=eq.${cfg.cid}`,
-        },
-        () => refreshRides()
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          refreshRides();
-        }
-      });
+  if (cfg.supabaseUrl && cfg.supabaseAnonKey && cfg.cid && supabaseNs && typeof supabaseNs.createClient === 'function'
+      && !window.__corpRidesRealtimeStarted) {
+    window.__corpRidesRealtimeStarted = true;
+
+    let firstSubscribed = true;
+    try {
+      const supabaseClient = supabaseNs.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+      supabaseClient
+        .channel(`corporate-rides-${cfg.cid}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'corporate_rides',
+            filter: `cid=eq.${cfg.cid}`,
+          },
+          () => refreshRides()
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED' && firstSubscribed) {
+            firstSubscribed = false;          // refresh once on first connect
+            refreshRides();
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            console.warn('[RealtimeRides] channel state:', status);
+          }
+        });
+    } catch (e) {
+      console.warn('[RealtimeRides] supabase init skipped:', e && e.message);
+    }
   }
 })();
