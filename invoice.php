@@ -908,6 +908,31 @@ if (!$logoSvg) { $logoSvg = ''; }
         </tfoot>
       </table>
 
+      <div id="tplMgWrap" style="margin-top:16px; display:none">
+        <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#475569; margin-bottom:6px;">
+          Meet &amp; Greet Rides
+        </div>
+        <table class="inv-tbl">
+          <colgroup>
+            <col class="col-num"/>
+            <col class="col-date"/>
+            <col/>
+            <col/>
+            <col class="col-charge"/>
+          </colgroup>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Date</th>
+              <th>Pickup</th>
+              <th>Dropoff</th>
+              <th class="text-right">Charge</th>
+            </tr>
+          </thead>
+          <tbody id="tplMGRides"></tbody>
+        </table>
+      </div>
+
       <div class="inv-foot">
         This is a system-generated invoice and does not require a signature or stamp to be valid.
       </div>
@@ -992,6 +1017,29 @@ if (!$logoSvg) { $logoSvg = ''; }
             </tr>
           </thead>
           <tbody id="tplMonthlyRidesBody"></tbody>
+        </table>
+      </section>
+
+      <section class="im-section" id="tplMonthlyMgWrap" style="display:none">
+        <div class="im-section-title">Meet &amp; Greet Rides</div>
+        <table class="im-tbl">
+          <colgroup>
+            <col class="col-num"/>
+            <col class="col-date"/>
+            <col/>
+            <col/>
+            <col class="col-charge"/>
+          </colgroup>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Date</th>
+              <th>Pickup</th>
+              <th>Dropoff</th>
+              <th class="text-right">Charge</th>
+            </tr>
+          </thead>
+          <tbody id="tplMonthlyMGRidesBody"></tbody>
         </table>
       </section>
 
@@ -1246,6 +1294,11 @@ if (!$logoSvg) { $logoSvg = ''; }
         .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
         .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     }
+    function isMeetGreetRide(r) {
+      const source = String((r && r.source) || '').trim().toLowerCase();
+      const kind   = String((r && r.ride_kind) || '').trim().toLowerCase();
+      return source === 'corporate meet_and_greet' || kind === 'meet_and_greet';
+    }
 
     empSelect.addEventListener('change', () => {
       loadRidesBtn.disabled = !empSelect.value;
@@ -1350,6 +1403,11 @@ if (!$logoSvg) { $logoSvg = ''; }
           <td style="width:36px">
             <input type="checkbox" class="form-check-input ride-check" data-idx="${i}" checked/>
           </td>
+          <td style="white-space:nowrap">
+            <span class="badge rounded-pill ${isMeetGreetRide(r) ? 'text-bg-info' : 'text-bg-secondary'}">
+              ${escapeHtml(r.ride_kind_label || (isMeetGreetRide(r) ? 'Meet & Greet' : 'Corporate Ride'))}
+            </span>
+          </td>
           <td style="white-space:nowrap">${escapeHtml(fmtDate(r.pickupTime))}</td>
           <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(r.pickup)}">${escapeHtml(r.pickup)}</td>
           <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(r.destination)}">${escapeHtml(r.destination)}</td>
@@ -1364,6 +1422,7 @@ if (!$logoSvg) { $logoSvg = ''; }
             <thead>
               <tr>
                 <th></th>
+                <th>Ride Type</th>
                 <th>Date &amp; Time</th>
                 <th>Pickup</th>
                 <th>Dropoff</th>
@@ -1462,6 +1521,8 @@ if (!$logoSvg) { $logoSvg = ''; }
     generateBtn.addEventListener('click', () => {
       const sel = selectedRides();
       if (!sel.length) return;
+      const regularSel = sel.filter(r => !isMeetGreetRide(r));
+      const mgSel      = sel.filter(r => isMeetGreetRide(r));
 
       const opt = empSelect.options[empSelect.selectedIndex];
       const empName  = opt.dataset.name  || '';
@@ -1501,7 +1562,7 @@ if (!$logoSvg) { $logoSvg = ''; }
 
         // Rides body
         const mTbody = document.getElementById('tplMonthlyRidesBody');
-        mTbody.innerHTML = sel.map((r, i) => `
+        mTbody.innerHTML = regularSel.map((r, i) => `
           <tr>
             <td>${i + 1}</td>
             <td class="nowrap">${escapeHtml(fmtDate(r.pickupTime))}</td>
@@ -1510,6 +1571,26 @@ if (!$logoSvg) { $logoSvg = ''; }
             <td class="text-right nowrap">${fmtMoney(r.charge)}</td>
           </tr>
         `).join('');
+        if (!regularSel.length) {
+          mTbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#94a3b8;">No regular corporate rides selected.</td></tr>`;
+        }
+        const mMgWrap = document.getElementById('tplMonthlyMgWrap');
+        const mMgBody = document.getElementById('tplMonthlyMGRidesBody');
+        if (mgSel.length) {
+          mMgWrap.style.display = '';
+          mMgBody.innerHTML = mgSel.map((r, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td class="nowrap">${escapeHtml(fmtDate(r.pickupTime))}</td>
+              <td>${escapeHtml(r.pickup)}</td>
+              <td>${escapeHtml(r.destination)}</td>
+              <td class="text-right nowrap">${fmtMoney(r.charge)}</td>
+            </tr>
+          `).join('');
+        } else {
+          mMgWrap.style.display = 'none';
+          mMgBody.innerHTML = '';
+        }
         document.getElementById('tplMonthlySubtotal').textContent   = fmtMoney(subtotal);
         document.getElementById('tplMonthlyVat').textContent        = fmtMoney(vat);
         document.getElementById('tplMonthlyGrandTotal').textContent = fmtMoney(total);
@@ -1524,7 +1605,7 @@ if (!$logoSvg) { $logoSvg = ''; }
         document.getElementById('tplEmpPhone').textContent  = empPhone;
 
         const tbody = document.getElementById('tplRides');
-        tbody.innerHTML = sel.map((r, i) => `
+        tbody.innerHTML = regularSel.map((r, i) => `
           <tr>
             <td>${i + 1}</td>
             <td class="nowrap">${escapeHtml(fmtDate(r.pickupTime))}</td>
@@ -1533,6 +1614,26 @@ if (!$logoSvg) { $logoSvg = ''; }
             <td class="text-right nowrap">${fmtMoney(r.charge)}</td>
           </tr>
         `).join('');
+        if (!regularSel.length) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#94a3b8;">No regular corporate rides selected.</td></tr>`;
+        }
+        const mgWrap = document.getElementById('tplMgWrap');
+        const mgBody = document.getElementById('tplMGRides');
+        if (mgSel.length) {
+          mgWrap.style.display = '';
+          mgBody.innerHTML = mgSel.map((r, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td class="nowrap">${escapeHtml(fmtDate(r.pickupTime))}</td>
+              <td>${escapeHtml(r.pickup)}</td>
+              <td>${escapeHtml(r.destination)}</td>
+              <td class="text-right nowrap">${fmtMoney(r.charge)}</td>
+            </tr>
+          `).join('');
+        } else {
+          mgWrap.style.display = 'none';
+          mgBody.innerHTML = '';
+        }
         document.getElementById('tplSubtotal').textContent = fmtMoney(subtotal);
         document.getElementById('tplVat').textContent      = fmtMoney(vat);
         document.getElementById('tplTotal').textContent    = fmtMoney(total);

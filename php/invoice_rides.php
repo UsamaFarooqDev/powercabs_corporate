@@ -51,6 +51,8 @@ try {
     foreach ($rides as $r) {
         $charge = $r['total_charge'] ?? null;
         if ($charge === null || $charge === '') $charge = $r['fare'] ?? 0;
+        $source = strtolower(trim((string)($r['source'] ?? '')));
+        $isMeetGreet = ($source === 'corporate meet_and_greet');
         $out[] = [
             'id'             => $r['id']             ?? null,
             'pickup'         => $r['pickup']         ?? ($r['pickup_addr'] ?? ''),
@@ -59,6 +61,9 @@ try {
             'vehicle_number' => $r['vehicle_number'] ?? '',
             'distance'       => $r['distance']       ?? ($r['distance_km'] ?? ''),
             'charge'         => floatval($charge),
+            'source'         => $r['source']         ?? '',
+            'ride_kind'      => $isMeetGreet ? 'meet_and_greet' : 'corporate_ride',
+            'ride_kind_label'=> $isMeetGreet ? 'Meet & Greet' : 'Corporate Ride',
         ];
     }
 
