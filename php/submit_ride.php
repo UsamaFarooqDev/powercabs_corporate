@@ -15,17 +15,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
     $supabase = new SupabaseClient(true);
-    $supabase->insert('corporate_rides', [
+    $supabase->insert('rides', [
         'employee_id' => $employeeId,
         'pickup' => $pickup,
         'destination' => $dropoff,
+        'pickup_addr' => $pickup,
+        'dest_addr' => $dropoff,
         'carType' => $carType,
+        'ride_type' => $carType,
         'pickupTime' => $pickupTime,
         'payment_source' => $paymentSource,
+        'payment_method' => strtolower((string)$paymentSource),
         'company' => $companyName,
         'distance' => $distance,
+        'distance_km' => $distance,
         'eta' => $duration,
         'fare' => $fare,
+        'fare_eur' => $fare,
+        'source' => 'corporate',
         'status' => 'Pending'
     ]);
         echo "Ride booked successfully.";

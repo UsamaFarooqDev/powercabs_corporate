@@ -266,8 +266,7 @@
           {
             event: '*',
             schema: 'public',
-            table: 'corporate_rides',
-            filter: `cid=eq.${cfg.cid}`,
+            table: 'rides',
           },
           () => refreshRides()
         )

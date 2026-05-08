@@ -21,10 +21,10 @@ function mapSupabaseErrorToUserMessage(Throwable $e): string
         $pgMsg = isset($payload['message']) ? (string) $payload['message'] : '';
 
         if ($code === '23505') {
-            if (stripos($detail, 'corporate_rides_pkey') !== false
-                || stripos($pgMsg, 'corporate_rides_pkey') !== false
+            if (stripos($detail, 'rides_pkey') !== false
+                || stripos($pgMsg, 'rides_pkey') !== false
                 || preg_match('/Key \(id\)=\(/', $detail)) {
-                return 'Your ride could not be booked: the booking ID sequence is out of sync with the database. Please try again once. If this keeps happening, your administrator needs to reset the auto-increment sequence for corporate rides.';
+                return 'Your ride could not be booked because of a booking ID conflict. Please try again once.';
             }
             return 'Your ride could not be booked because it conflicts with an existing record. Please adjust your details and try again.';
         }
@@ -33,6 +33,9 @@ function mapSupabaseErrorToUserMessage(Throwable $e): string
         }
         if ($code === '23514') {
             return 'Your ride could not be booked because some values failed validation. Check pickup time and other fields, then try again.';
+        }
+        if ($code === 'PGRST204') {
+            return 'Your ride could not be booked because the rides table schema is missing one or more required fields for corporate bookings.';
         }
     }
 
@@ -83,6 +86,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
     $supabase = new SupabaseClient(true);
     $insertPayload = [
+        // Canonical rides columns (required for the merged model).
+        'pickup_addr' => $pickup,
+        'dest_addr' => $destination,
+        'payment_method' => strtolower((string)$paymentSource),
+        'ride_type' => $carType,
+        'status' => $status,
+        'source' => 'corporate',
+        'cid' => $cid,
+        'fare_eur' => $fare,
+        'distance_km' => $distance,
+        'duration_min' => $eta
+    ];
+    // Legacy corporate columns are optional and inserted when present.
+    $optional = [
         'company' => $companyname,
         'employee' => $employee,
         'employee_id' => $employee_id,
@@ -91,13 +108,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'payment_source' => $paymentSource,
         'pickupTime' => $pickupTimeIso,
         'carType' => $carType,
-        'status' => $status,
-        'cid' => $cid,
         'fare' => $fare,
         'eta' => $eta,
         'distance' => $distance
     ];
-    $supabase->insert('corporate_rides', $insertPayload);
+    foreach ($optional as $k => $v) {
+        if ($v !== null && $v !== '') $insertPayload[$k] = $v;
+    }
+
+    // Unknown optional columns are dropped and retried.
+    $optionalKeys = array_keys($optional);
+    $maxAttempts = 12;
+    while ($maxAttempts-- > 0) {
+        try {
+            $supabase->insert('rides', $insertPayload);
+            break;
+        } catch (Throwable $e) {
+            $msg = $e->getMessage();
+            $col = null;
+            if (preg_match("/Could not find the '([^']+)' column/", $msg, $m)) $col = $m[1];
+            else if (preg_match('/column "([^"]+)" of relation/i', $msg, $m)) $col = $m[1];
+
+            if ($col !== null && array_key_exists($col, $insertPayload) && in_array($col, $optionalKeys, true)) {
+                unset($insertPayload[$col]);
+                continue;
+            }
+            throw $e;
+        }
+    }
     // Compose WhatsApp message for Dispatcher
     $message = "New Ride Request\n\n"
         . "Company: $companyname\n"
@@ -151,6 +189,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     echo json_encode(['success' => true, 'message' => 'Ride booked successfully. Dispatcher notified via WhatsApp.']);
     } catch (Throwable $e) {
+      error_log('[save_ride] ' . $e->getMessage()
+        . ' | payload_keys=' . json_encode(array_keys($insertPayload ?? [])));
       echo json_encode([
         'success' => false,
         'message' => mapSupabaseErrorToUserMessage($e),

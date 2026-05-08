@@ -29,7 +29,7 @@ $allowedReasons  = [
     'The price is not reasonable',
 ];
 
-if ($rideId === '' || !ctype_digit($rideId)) {
+if ($rideId === '') {
     echo json_encode(['success' => false, 'message' => 'Ride ID is required']);
     exit;
 }
@@ -49,9 +49,14 @@ try {
     $supabase = new SupabaseClient(true);
 
     // Verify the ride belongs to this corporate account
-    $existing = $supabase->select('corporate_rides',
-        ['id' => (int)$rideId, 'cid' => $cid], '*', null, 1);
+    $existing = $supabase->select('rides',
+        ['id' => $rideId, 'cid' => $cid], '*', null, 1);
     if (empty($existing)) {
+        echo json_encode(['success' => false, 'message' => 'Ride not found']);
+        exit;
+    }
+    $source = strtolower(trim((string)($existing[0]['source'] ?? '')));
+    if ($source !== 'corporate' && $source !== 'corporate meet_and_greet') {
         echo json_encode(['success' => false, 'message' => 'Ride not found']);
         exit;
     }
@@ -89,8 +94,8 @@ try {
     $maxAttempts = 6;
     while ($maxAttempts-- > 0) {
         try {
-            $supabase->update('corporate_rides',
-                ['id' => (int)$rideId, 'cid' => $cid],
+            $supabase->update('rides',
+                ['id' => $rideId, 'cid' => $cid],
                 $update
             );
             break;

@@ -21,11 +21,16 @@ if ($employeeId === '') {
 
 try {
     $supabase = new SupabaseClient(true);
-    $rides    = $supabase->select('corporate_rides',
-        ['cid' => $cid, 'employee_id' => $employeeId, 'status' => 'Completed'],
+    $rows = $supabase->select('rides',
+        ['cid' => $cid, 'employee_id' => $employeeId],
         '*',
-        'id.desc'
+        'pickupTime.desc'
     );
+    $rides = array_values(array_filter($rows, function ($r) {
+        $source = strtolower(trim((string)($r['source'] ?? '')));
+        $isCorporate = ($source === 'corporate' || $source === 'corporate meet_and_greet');
+        return $isCorporate && strtolower((string)($r['status'] ?? '')) === 'completed';
+    }));
 
     // Optional date range filter on pickupTime (client supplies YYYY-MM-DD)
     if ($fromDate !== '' || $toDate !== '') {
@@ -48,11 +53,11 @@ try {
         if ($charge === null || $charge === '') $charge = $r['fare'] ?? 0;
         $out[] = [
             'id'             => $r['id']             ?? null,
-            'pickup'         => $r['pickup']         ?? '',
-            'destination'    => $r['destination']    ?? '',
-            'pickupTime'     => $r['pickupTime']     ?? '',
+            'pickup'         => $r['pickup']         ?? ($r['pickup_addr'] ?? ''),
+            'destination'    => $r['destination']    ?? ($r['dest_addr'] ?? ''),
+            'pickupTime'     => $r['pickupTime']     ?? ($r['created_at'] ?? ''),
             'vehicle_number' => $r['vehicle_number'] ?? '',
-            'distance'       => $r['distance']       ?? '',
+            'distance'       => $r['distance']       ?? ($r['distance_km'] ?? ''),
             'charge'         => floatval($charge),
         ];
     }

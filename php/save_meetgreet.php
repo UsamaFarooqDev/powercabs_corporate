@@ -67,8 +67,21 @@ if (!empty($data['placard'])) $notesParts[] = 'Placard: ' . $data['placard'];
 if (!empty($data['notes']))   $notesParts[] = 'Note: '    . $data['notes'];
 $mgNotes = implode(' · ', $notesParts);
 
-// ── Same exact payload shape as save_ride.php (which is proven to work) ──
+// ── rides-table payload: canonical columns first ──
 $insertPayload = [
+    'pickup_addr'    => (string)$data['pickup'],
+    'dest_addr'      => (string)$data['dropoff'],
+    'payment_method' => 'stripe',
+    'ride_type'      => (string)$data['carType'],
+    'status'         => 'Pending',
+    'source'         => 'corporate meet_and_greet',
+    'cid'            => $cid,
+    'fare_eur'       => floatval($data['fare']),
+    'distance_km'    => floatval($data['distance']),
+    'duration_min'   => intval($data['eta'] ?? 0),
+];
+// Legacy corporate columns remain optional for compatibility.
+$optionalLegacy = [
     'company'        => $companyName,
     'employee'       => (string)$data['employee_name'],
     'employee_id'    => (string)$data['employee_id'],
@@ -77,24 +90,28 @@ $insertPayload = [
     'payment_source' => 'Stripe',
     'pickupTime'     => $pickupTimeIso,
     'carType'        => (string)$data['carType'],
-    'status'         => 'Pending',
-    'cid'            => $cid,
     'fare'           => floatval($data['fare']),
     'eta'            => intval($data['eta'] ?? 0),
     'distance'       => floatval($data['distance']),
 ];
+foreach ($optionalLegacy as $k => $v) {
+    if ($v !== null && $v !== '') {
+        $insertPayload[$k] = $v;
+    }
+}
 
 // Optional fields used to *distinguish* a Meet & Greet booking from a
-// regular ride. If the column doesn't exist on `corporate_rides`, the
+// regular ride. If the column doesn't exist on `rides`, the
 // retry loop below silently drops it.
 $optional = [
-    'source'           => 'corporate-meetgreet',
+    'label'            => 'corporate meet_and_greet',
+    'booking_label'    => 'corporate meet_and_greet',
+    'ride_label'       => 'corporate meet_and_greet',
     'notes'            => $mgNotes,
     'description'      => $mgNotes,
     'special_requests' => $mgNotes,
     'comments'         => $mgNotes,
-    // Terminal / meeting point — try these column names in order; whichever
-    // exists on the schema gets the value, the rest are stripped.
+    // Terminal / meeting point columns for Meet & Greet specifics.
     'terminal'         => $terminal,
     'meeting_point'    => $terminal,
     'terminal_name'    => $terminal,
@@ -112,20 +129,39 @@ foreach ($optional as $k => $v) {
 
 try {
     $supabase = new SupabaseClient(true);
+    $inserted = false;
+    $lastInsertError = null;
 
     // Drop any optional column the schema doesn't have, then retry.
-    // Required columns (the original save_ride.php shape) always stay.
-    $optionalKeys = array_keys($optional);
+    // Required canonical rides columns always stay.
+    $optionalKeys = array_merge(array_keys($optionalLegacy), array_keys($optional));
     $maxAttempts  = 12;
     while ($maxAttempts-- > 0) {
         try {
-            $result = $supabase->insert('corporate_rides', $insertPayload);
+            $result = $supabase->insert('rides', $insertPayload);
             if (!is_array($result) || empty($result)) {
                 throw new Exception('Insert returned no row.');
             }
-            $newId = $result[0]['id'] ?? null;
+            $first = is_array($result[0] ?? null) ? $result[0] : [];
+            $newId = $first['id'] ?? ($first['ride_id'] ?? ($first['uuid'] ?? null));
+            if ($newId === null || $newId === '') {
+                // Some deployments return a row shape without `id`; resolve the
+                // freshly inserted ride deterministically from key attributes.
+                $lookup = $supabase->select('rides', [
+                    'cid' => $cid,
+                    'source' => 'corporate meet_and_greet',
+                    'employee_id' => (string)$data['employee_id'],
+                    'pickup_addr' => (string)$data['pickup'],
+                    'dest_addr' => (string)$data['dropoff'],
+                ], 'id', 'created_at.desc', 1);
+                if (!empty($lookup) && is_array($lookup[0])) {
+                    $newId = $lookup[0]['id'] ?? null;
+                }
+            }
+            $inserted = true;
             break;
         } catch (Throwable $e) {
+            $lastInsertError = $e;
             $msg = $e->getMessage();
             $col = null;
             if (preg_match("/Could not find the '([^']+)' column/", $msg, $m)) $col = $m[1];
@@ -140,6 +176,10 @@ try {
             }
             throw $e;
         }
+    }
+    if (!$inserted) {
+        if ($lastInsertError instanceof Throwable) throw $lastInsertError;
+        throw new Exception('Could not save booking after retry attempts.');
     }
 
     echo json_encode([

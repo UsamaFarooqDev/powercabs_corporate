@@ -9,9 +9,29 @@ $user      = $_SESSION['user'];
 $cid       = $user['cid'];
 $pageTitle = 'Ride History';
 $rides     = [];
+function normalizeCorporateRide(array $row): array {
+  $statusRaw = (string)($row['status'] ?? '');
+  $status = trim($statusRaw) === '' ? 'Pending' : ucwords(str_replace('_', ' ', strtolower($statusRaw)));
+  return [
+    'id' => (string)($row['id'] ?? ''),
+    'employee' => $row['employee'] ?? '',
+    'pickup' => $row['pickup'] ?? ($row['pickup_addr'] ?? ''),
+    'destination' => $row['destination'] ?? ($row['dest_addr'] ?? ''),
+    'pickupTime' => $row['pickupTime'] ?? ($row['created_at'] ?? ''),
+    'vehicle_number' => $row['vehicle_number'] ?? 'N/A',
+    'fare' => $row['fare'] ?? ($row['fare_eur'] ?? 0),
+    'status' => $status,
+  ];
+}
+function isCorporateSource(array $row): bool {
+  $source = strtolower(trim((string)($row['source'] ?? '')));
+  return $source === 'corporate' || $source === 'corporate meet_and_greet';
+}
 try {
   $supabase = new SupabaseClient(true);
-  $rides    = $supabase->select('corporate_rides', ['cid' => $cid], '*', 'id.desc');
+  $rows     = $supabase->select('rides', ['cid' => $cid], '*', 'pickupTime.desc');
+  $rows     = array_values(array_filter($rows, 'isCorporateSource'));
+  $rides    = array_map('normalizeCorporateRide', $rows);
 } catch (Throwable $e) {
   $rides = [];
 }
