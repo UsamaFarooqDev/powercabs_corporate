@@ -7,7 +7,7 @@ if (!isset($_SESSION['user'])) {
 }
 $user      = $_SESSION['user'];
 $cid       = $user['cid'];
-$cname     = $user['name'];
+$cname     = $user['name'] ?? '';
 $pageTitle = 'Book a Ride';
 $employees = [];
 $rideTypes = [];
