@@ -24,7 +24,7 @@ try {
     $rows = $supabase->select('rides',
         ['cid' => $cid, 'employee_id' => $employeeId],
         '*',
-        'pickupTime.desc'
+        'created_at.desc'
     );
     $rides = array_values(array_filter($rows, function ($r) {
         $source = strtolower(trim((string)($r['source'] ?? '')));
@@ -37,7 +37,7 @@ try {
         $fromTs = $fromDate !== '' ? strtotime($fromDate . ' 00:00:00') : null;
         $toTs   = $toDate   !== '' ? strtotime($toDate   . ' 23:59:59') : null;
         $rides = array_values(array_filter($rides, function ($r) use ($fromTs, $toTs) {
-            $pt = $r['pickupTime'] ?? '';
+            $pt = $r['enroute_at'] ?? ($r['created_at'] ?? '');
             $ts = $pt ? strtotime($pt) : false;
             if (!$ts) return false;
             if ($fromTs !== null && $ts < $fromTs) return false;
@@ -46,20 +46,19 @@ try {
         }));
     }
 
-    // Normalise the charge field — prefer total_charge, fall back to fare
+    // Canonical charge field on rides is fare_eur.
     $out = [];
     foreach ($rides as $r) {
-        $charge = $r['total_charge'] ?? null;
-        if ($charge === null || $charge === '') $charge = $r['fare'] ?? 0;
+        $charge = $r['fare_eur'] ?? 0;
         $source = strtolower(trim((string)($r['source'] ?? '')));
         $isMeetGreet = ($source === 'corporate meet_and_greet');
         $out[] = [
             'id'             => $r['id']             ?? null,
-            'pickup'         => $r['pickup']         ?? ($r['pickup_addr'] ?? ''),
-            'destination'    => $r['destination']    ?? ($r['dest_addr'] ?? ''),
-            'pickupTime'     => $r['pickupTime']     ?? ($r['created_at'] ?? ''),
+            'pickup'         => $r['pickup_addr']    ?? '',
+            'destination'    => $r['dest_addr']      ?? '',
+            'pickupTime'     => $r['enroute_at']     ?? ($r['created_at'] ?? ''),
             'vehicle_number' => $r['vehicle_number'] ?? '',
-            'distance'       => $r['distance']       ?? ($r['distance_km'] ?? ''),
+            'distance'       => $r['distance_km']    ?? '',
             'charge'         => floatval($charge),
             'source'         => $r['source']         ?? '',
             'ride_kind'      => $isMeetGreet ? 'meet_and_greet' : 'corporate_ride',

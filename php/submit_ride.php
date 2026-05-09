@@ -17,21 +17,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $supabase = new SupabaseClient(true);
     $supabase->insert('rides', [
         'employee_id' => $employeeId,
-        'pickup' => $pickup,
-        'destination' => $dropoff,
         'pickup_addr' => $pickup,
         'dest_addr' => $dropoff,
-        'carType' => $carType,
         'ride_type' => $carType,
-        'pickupTime' => $pickupTime,
-        'payment_source' => $paymentSource,
         'payment_method' => strtolower((string)$paymentSource),
         'company' => $companyName,
-        'distance' => $distance,
         'distance_km' => $distance,
-        'eta' => $duration,
-        'fare' => $fare,
         'fare_eur' => $fare,
+        'duration_min' => $duration,
+        'enroute_at' => date('Y-m-d H:i:s', strtotime((string)$pickupTime)),
         'source' => 'corporate',
         'status' => 'Pending'
     ]);

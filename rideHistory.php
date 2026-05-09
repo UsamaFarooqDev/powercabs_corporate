@@ -15,11 +15,11 @@ function normalizeCorporateRide(array $row): array {
   return [
     'id' => (string)($row['id'] ?? ''),
     'employee' => $row['employee'] ?? '',
-    'pickup' => $row['pickup'] ?? ($row['pickup_addr'] ?? ''),
-    'destination' => $row['destination'] ?? ($row['dest_addr'] ?? ''),
-    'pickupTime' => $row['pickupTime'] ?? ($row['created_at'] ?? ''),
+    'pickup' => $row['pickup_addr'] ?? '',
+    'destination' => $row['dest_addr'] ?? '',
+    'pickupTime' => $row['enroute_at'] ?? ($row['created_at'] ?? ''),
     'vehicle_number' => $row['vehicle_number'] ?? 'N/A',
-    'fare' => $row['fare'] ?? ($row['fare_eur'] ?? 0),
+    'fare' => $row['fare_eur'] ?? 0,
     'status' => $status,
   ];
 }
@@ -29,7 +29,7 @@ function isCorporateSource(array $row): bool {
 }
 try {
   $supabase = new SupabaseClient(true);
-  $rows     = $supabase->select('rides', ['cid' => $cid], '*', 'pickupTime.desc');
+  $rows     = $supabase->select('rides', ['cid' => $cid], '*', 'created_at.desc');
   $rows     = array_values(array_filter($rows, 'isCorporateSource'));
   $rides    = array_map('normalizeCorporateRide', $rows);
 } catch (Throwable $e) {

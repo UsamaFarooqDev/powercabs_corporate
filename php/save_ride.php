@@ -96,21 +96,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'cid' => $cid,
         'fare_eur' => $fare,
         'distance_km' => $distance,
-        'duration_min' => $eta
+        'duration_min' => $eta,
+        // Corporate pickup time is stored in existing rides timestamp column.
+        'enroute_at' => $pickupTimeIso
     ];
-    // Legacy corporate columns are optional and inserted when present.
+    // Keep only business-identity compatibility fields, avoid duplicate ride metrics.
     $optional = [
         'company' => $companyname,
         'employee' => $employee,
-        'employee_id' => $employee_id,
-        'pickup' => $pickup,
-        'destination' => $destination,
-        'payment_source' => $paymentSource,
-        'pickupTime' => $pickupTimeIso,
-        'carType' => $carType,
-        'fare' => $fare,
-        'eta' => $eta,
-        'distance' => $distance
+        'employee_id' => $employee_id
     ];
     foreach ($optional as $k => $v) {
         if ($v !== null && $v !== '') $insertPayload[$k] = $v;

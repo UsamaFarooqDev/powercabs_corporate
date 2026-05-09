@@ -79,20 +79,14 @@ $insertPayload = [
     'fare_eur'       => floatval($data['fare']),
     'distance_km'    => floatval($data['distance']),
     'duration_min'   => intval($data['eta'] ?? 0),
+    // Reuse existing rides timestamp for scheduled pickup.
+    'enroute_at'     => $pickupTimeIso,
 ];
-// Legacy corporate columns remain optional for compatibility.
+// Keep only business-identity compatibility fields, avoid duplicate ride metrics.
 $optionalLegacy = [
     'company'        => $companyName,
     'employee'       => (string)$data['employee_name'],
-    'employee_id'    => (string)$data['employee_id'],
-    'pickup'         => (string)$data['pickup'],
-    'destination'    => (string)$data['dropoff'],
-    'payment_source' => 'Stripe',
-    'pickupTime'     => $pickupTimeIso,
-    'carType'        => (string)$data['carType'],
-    'fare'           => floatval($data['fare']),
-    'eta'            => intval($data['eta'] ?? 0),
-    'distance'       => floatval($data['distance']),
+    'employee_id'    => (string)$data['employee_id']
 ];
 foreach ($optionalLegacy as $k => $v) {
     if ($v !== null && $v !== '') {
