@@ -52,6 +52,7 @@ try {
         $charge = $r['fare_eur'] ?? 0;
         $source = strtolower(trim((string)($r['source'] ?? '')));
         $isMeetGreet = ($source === 'corporate meet_and_greet');
+        $guestNameField = trim((string)($r['guest_name'] ?? ''));
         $out[] = [
             'id'             => $r['id']             ?? null,
             'pickup'         => $r['pickup_addr']    ?? '',
@@ -61,6 +62,7 @@ try {
             'distance'       => $r['distance_km']    ?? '',
             'charge'         => floatval($charge),
             'source'         => $r['source']         ?? '',
+            'guest_name'     => $guestNameField,
             'ride_kind'      => $isMeetGreet ? 'meet_and_greet' : 'corporate_ride',
             'ride_kind_label'=> $isMeetGreet ? 'Meet & Greet' : 'Corporate Ride',
         ];

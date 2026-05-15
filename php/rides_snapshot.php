@@ -14,6 +14,8 @@ $cid = $_SESSION['user']['cid'];
 function normalizeCorporateRide(array $row): array {
     $statusRaw = (string)($row['status'] ?? '');
     $status = trim($statusRaw) === '' ? 'Pending' : ucwords(str_replace('_', ' ', strtolower($statusRaw)));
+    $source = strtolower(trim((string)($row['source'] ?? '')));
+    $category = $source === 'corporate meet_and_greet' ? 'Meet & Greet' : 'Corporate';
     return [
         'id'             => (string)($row['id'] ?? ''),
         'employee'       => $row['employee'] ?? '',
@@ -23,6 +25,7 @@ function normalizeCorporateRide(array $row): array {
         'vehicle_number' => $row['vehicle_number'] ?? 'N/A',
         'fare'           => $row['fare_eur'] ?? 0,
         'status'         => $status,
+        'category'       => $category,
     ];
 }
 function isCorporateSource(array $row): bool {
@@ -40,10 +43,12 @@ try {
     $pendingRides = 0;
     $expense = 0.0;
     foreach ($rides as $ride) {
-        if (($ride['status'] ?? '') === 'Pending') {
+        if (in_array($ride['status'] ?? '', ['Pending', 'Scheduled'])) {
             $pendingRides++;
         }
-        $expense += floatval($ride['fare'] ?? 0);
+        if (($ride['status'] ?? '') === 'Completed') {
+            $expense += floatval($ride['fare'] ?? 0);
+        }
     }
 
     echo json_encode([

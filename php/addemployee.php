@@ -22,7 +22,6 @@ $name       = htmlspecialchars(trim($_POST['name'] ?? ''));
 $email      = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
 $contact    = htmlspecialchars(trim($_POST['phone'] ?? $_POST['contact'] ?? ''));
 $department = htmlspecialchars(trim($_POST['department'] ?? ''));
-
 if ($name === '' || $email === '' || $contact === '') {
     echo json_encode(['success' => false, 'message' => 'Name, email, and phone are required.']);
     exit;

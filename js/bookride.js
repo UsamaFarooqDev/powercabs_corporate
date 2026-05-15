@@ -239,6 +239,19 @@ function recalculateFareForCurrentRoute() {
   }
 }
 
+// ── Passenger type helpers ──────────────────────────────
+function getPassengerType() {
+  return document.querySelector('input[name="passengerType"]:checked')?.value || 'employee';
+}
+function applyPassengerType(type) {
+  const isEmp   = type === 'employee' || type === 'both';
+  const isGuest = type === 'guest'    || type === 'both';
+  const employeeRow = document.getElementById('employeeRow');
+  const guestFields = document.getElementById('guestFields');
+  if (employeeRow) employeeRow.style.display = isEmp   ? '' : 'none';
+  if (guestFields) guestFields.style.display = isGuest ? '' : 'none';
+}
+
 function setupFormListeners() {
   const pickupInput = document.getElementById('pickup');
   const dropoffInput = document.getElementById('dropoff');
@@ -247,6 +260,18 @@ function setupFormListeners() {
   const employeeSelect = document.getElementById('employee');
   const bookRideBtn = document.getElementById('bookRideBtn');
   const rideTypeGrid = document.getElementById('rideTypeGrid');
+  const passengerTypeGrid = document.getElementById('passengerTypeGrid');
+
+  // Passenger type card clicks
+  passengerTypeGrid?.addEventListener('click', (e) => {
+    const card = e.target.closest('.br-pax-card');
+    if (!card) return;
+    passengerTypeGrid.querySelectorAll('.br-pax-card').forEach(c => c.classList.remove('is-selected'));
+    card.classList.add('is-selected');
+    const radio = card.querySelector('input[type="radio"]');
+    if (radio) radio.checked = true;
+    applyPassengerType(card.dataset.pax || 'employee');
+  });
 
   [pickupInput, dropoffInput].forEach((el) => {
     if (!el) return;
@@ -291,6 +316,13 @@ function setupFormListeners() {
   if (bookRideBtn) {
     bookRideBtn.addEventListener('click', validateAndSubmitForm);
   }
+
+  // Schedule for Later — sync card visual state with checkbox
+  const scheduleChk  = document.getElementById('scheduleForLater');
+  const scheduleCard = document.getElementById('scheduleCard');
+  scheduleChk?.addEventListener('change', () => {
+    scheduleCard?.classList.toggle('is-checked', scheduleChk.checked);
+  });
 }
 
 // ==== FORM SUBMISSION ====
@@ -314,6 +346,11 @@ function resetRideForm() {
   const form = document.getElementById('rideForm');
   if (!form) return;
   form.reset();
+  // Reset passenger type to Employee
+  const passengerTypeGrid = document.getElementById('passengerTypeGrid');
+  passengerTypeGrid?.querySelectorAll('.br-pax-card').forEach((c, i) =>
+    c.classList.toggle('is-selected', i === 0));
+  applyPassengerType('employee');
   // Hidden fields & computed values
   const employeeName = document.getElementById('employeeName');
   if (employeeName) employeeName.value = '';
@@ -333,41 +370,68 @@ function resetRideForm() {
     const el = document.getElementById(id);
     if (el) el.textContent = '0';
   });
+  // Uncheck schedule toggle and reset card visual
+  const scheduleChk  = document.getElementById('scheduleForLater');
+  const scheduleCard = document.getElementById('scheduleCard');
+  if (scheduleChk) scheduleChk.checked = false;
+  if (scheduleCard) scheduleCard.classList.remove('is-checked');
   // Clear autocomplete session route state if used
   window.__rideRouteCache = null;
 }
 
 function validateAndSubmitForm() {
-  const employee_id = document.getElementById('employee')?.value;
+  const passengerType = getPassengerType();
+  const isEmployee = passengerType === 'employee' || passengerType === 'both';
+  const isGuest    = passengerType === 'guest'    || passengerType === 'both';
+
+  const employee_id   = document.getElementById('employee')?.value;
   const employee_name = document.getElementById('employeeName')?.value;
-  const pickup = document.getElementById('pickup')?.value;
-  const dropoff = document.getElementById('dropoff')?.value;
-  const pickupTime = document.getElementById('pickupTime')?.value;
-  const carType = document.getElementById('carType')?.value;
+  const guestName     = document.getElementById('guestName')?.value?.trim()  || '';
+  const guestPhone    = document.getElementById('guestPhone')?.value?.trim() || '';
+  const pickup        = document.getElementById('pickup')?.value;
+  const dropoff       = document.getElementById('dropoff')?.value;
+  const pickupTime    = document.getElementById('pickupTime')?.value;
+  const carType       = document.getElementById('carType')?.value;
   const paymentSource = document.getElementById('paymentSource')?.value;
-  const employee_phone = document.getElementById('employeePhone')?.value;
 
   const distanceText = document.getElementById('summaryDistance')?.textContent || '';
   const durationText = document.getElementById('summaryDuration')?.textContent || '';
-  const fareText = document.getElementById('summaryFare')?.textContent || '';
+  const fareText     = document.getElementById('summaryFare')?.textContent     || '';
 
-  if (!employee_id || !employee_name || !pickup || !dropoff || !pickupTime || !carType || !paymentSource) {
+  if (!pickup || !dropoff || !pickupTime || !carType || !paymentSource) {
     showToast('Please fill in all required fields.', 'error');
     return;
   }
+  if (isEmployee && (!employee_id || !employee_name)) {
+    showToast('Please select an employee.', 'error');
+    return;
+  }
+  if (isGuest && !guestName) {
+    showToast('Please enter the guest name.', 'error');
+    return;
+  }
+
+  // For guest-only rides use guest name as the passenger label
+  const effectiveEmpName = isEmployee ? employee_name : guestName;
+  const effectiveEmpId   = isEmployee ? employee_id   : '';
+
+  const scheduleForLater = document.getElementById('scheduleForLater')?.checked;
 
   const rideData = {
-    employee_id,
-    employee_name,
-    employee_phone,
+    passenger_type: passengerType,
+    employee_id:    effectiveEmpId,
+    employee_name:  effectiveEmpName,
+    guest_name:     guestName,
+    guest_phone:    guestPhone,
     pickup,
     dropoff,
     pickupTime,
     carType,
     paymentSource,
     distance: parseFloat(distanceText) || 0,
-    eta: parseInt(durationText) || 0,
-    fare: parseFloat(fareText) || 0,
+    eta:      parseInt(durationText)   || 0,
+    fare:     parseFloat(fareText)     || 0,
+    status:   scheduleForLater ? 'scheduled' : 'pending',
   };
 
   setBookBtnLoading(true);

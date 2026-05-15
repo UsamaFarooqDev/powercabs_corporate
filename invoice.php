@@ -1566,7 +1566,7 @@ if (!$logoSvg) { $logoSvg = ''; }
           <tr>
             <td>${i + 1}</td>
             <td class="nowrap">${escapeHtml(fmtDate(r.pickupTime))}</td>
-            <td>${escapeHtml(r.pickup)}</td>
+            <td>${escapeHtml(r.pickup)}${r.guest_name ? `<div style="font-size:9px;color:#94a3b8;margin-top:2px;">Guest: ${escapeHtml(r.guest_name)}</div>` : ''}</td>
             <td>${escapeHtml(r.destination)}</td>
             <td class="text-right nowrap">${fmtMoney(r.charge)}</td>
           </tr>
@@ -1582,7 +1582,7 @@ if (!$logoSvg) { $logoSvg = ''; }
             <tr>
               <td>${i + 1}</td>
               <td class="nowrap">${escapeHtml(fmtDate(r.pickupTime))}</td>
-              <td>${escapeHtml(r.pickup)}</td>
+              <td>${escapeHtml(r.pickup)}${r.guest_name ? `<div style="font-size:9px;color:#94a3b8;margin-top:2px;">Guest: ${escapeHtml(r.guest_name)}</div>` : ''}</td>
               <td>${escapeHtml(r.destination)}</td>
               <td class="text-right nowrap">${fmtMoney(r.charge)}</td>
             </tr>
@@ -1609,7 +1609,7 @@ if (!$logoSvg) { $logoSvg = ''; }
           <tr>
             <td>${i + 1}</td>
             <td class="nowrap">${escapeHtml(fmtDate(r.pickupTime))}</td>
-            <td>${escapeHtml(r.pickup)}</td>
+            <td>${escapeHtml(r.pickup)}${r.guest_name ? `<div style="font-size:9px;color:#94a3b8;margin-top:2px;">Guest: ${escapeHtml(r.guest_name)}</div>` : ''}</td>
             <td>${escapeHtml(r.destination)}</td>
             <td class="text-right nowrap">${fmtMoney(r.charge)}</td>
           </tr>
@@ -1625,7 +1625,7 @@ if (!$logoSvg) { $logoSvg = ''; }
             <tr>
               <td>${i + 1}</td>
               <td class="nowrap">${escapeHtml(fmtDate(r.pickupTime))}</td>
-              <td>${escapeHtml(r.pickup)}</td>
+              <td>${escapeHtml(r.pickup)}${r.guest_name ? `<div style="font-size:9px;color:#94a3b8;margin-top:2px;">Guest: ${escapeHtml(r.guest_name)}</div>` : ''}</td>
               <td>${escapeHtml(r.destination)}</td>
               <td class="text-right nowrap">${fmtMoney(r.charge)}</td>
             </tr>

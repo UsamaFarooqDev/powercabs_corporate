@@ -80,6 +80,13 @@
          + `<div style="font-size:12px;color:#6b7280;line-height:1.2;margin-top:2px;">${time}</div>`;
   }
 
+  function categoryBadge(category) {
+    if (category === 'Meet & Greet') {
+      return `<span style="font-size:11px;font-weight:600;color:#7c3aed;background:#f5f3ff;border-radius:6px;padding:2px 7px;white-space:nowrap">M&amp;G</span>`;
+    }
+    return `<span style="font-size:11px;font-weight:600;color:#0369a1;background:#e0f2fe;border-radius:6px;padding:2px 7px;white-space:nowrap">Corporate</span>`;
+  }
+
   function rideRowHtml(ride) {
     const extra = (typeof window.rideRowExtraCells === 'function')
       ? (window.rideRowExtraCells(ride) || '')
@@ -92,6 +99,7 @@
         <td class='py-3' style='font-size: 14px; white-space: nowrap;'>${formatPickupDateTime(ride.pickupTime)}</td>
         <td class='py-3' style='font-size: 14px;'>${ride.vehicle_number || 'N/A'}</td>
         <td class='py-3' style='font-size: 14px;'>€${ride.fare || 0}</td>
+        <td class='py-3' style='font-size: 14px;'>${categoryBadge(ride.category || 'Corporate')}</td>
         <td class='py-3' style='font-size: 14px;'><span class="${statusClass(ride.status || '')}">${ride.status || ''}</span></td>
         ${extra}
       </tr>

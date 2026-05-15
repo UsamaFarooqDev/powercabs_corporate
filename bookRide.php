@@ -306,6 +306,65 @@ $defaultRideType = $rideTypes[0]['value'] ?? 'Economy';
       transition: background .15s;
     }
     .btn-modal-secondary:hover { background: #f9fafb; }
+
+    /* ── Passenger type cards ── */
+    .br-pax-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .br-pax-card {
+      position: relative;
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      padding: 10px 8px;
+      border: 1.5px solid #e5e7eb; border-radius: 10px;
+      cursor: pointer; text-align: center;
+      transition: border-color .15s, box-shadow .15s, background .15s;
+      user-select: none;
+    }
+    .br-pax-card:hover { border-color: #f3b88e; }
+    .br-pax-card.is-selected {
+      border-color: #f37a20; background: #fff7f0;
+      box-shadow: 0 0 0 2px rgba(243,122,32,.12);
+    }
+    .br-pax-card input[type="radio"] { position: absolute; opacity: 0; pointer-events: none; }
+    .br-pax-icon { font-size: 1.15rem; color: #6b7280; }
+    .br-pax-card.is-selected .br-pax-icon { color: #f37a20; }
+    .br-pax-name { font-size: 12px; font-weight: 600; color: #374151; }
+
+    /* ── Schedule for Later card ── */
+    .br-schedule-card {
+      display: flex; align-items: center; gap: 10px;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      user-select: none;
+    }
+    .br-schedule-card:hover { border-color: #f3b88e; background: #fffbf7; }
+    .br-schedule-card.is-checked { border-color: #f37a20; background: #fff7f0; }
+    .br-schedule-card input[type="checkbox"] { position: absolute; opacity: 0; pointer-events: none; }
+
+    .br-schedule-tick {
+      width: 18px; height: 18px; flex-shrink: 0;
+      border: 1.5px solid #d1d5db; border-radius: 5px;
+      display: flex; align-items: center; justify-content: center;
+      background: #fff; color: transparent;
+      transition: border-color .15s, background .15s, color .15s;
+      font-size: .7rem; line-height: 1;
+    }
+    .br-schedule-card.is-checked .br-schedule-tick {
+      border-color: #f37a20; background: #f37a20; color: #fff;
+    }
+
+    .br-schedule-text { flex: 1; min-width: 0; }
+    .br-schedule-title { display: block; font-size: 13px; font-weight: 600; color: #374151; line-height: 1.3; }
+    .br-schedule-hint  { display: block; font-size: 11px; color: #9ca3af; margin-top: 1px; }
+
+    .br-schedule-icon { font-size: .95rem; color: #9ca3af; flex-shrink: 0; transition: color .15s; }
+    .br-schedule-card.is-checked .br-schedule-icon { color: #f37a20; }
   </style>
 </head>
 <body>
@@ -323,8 +382,33 @@ $defaultRideType = $rideTypes[0]['value'] ?? 'Economy';
 
             <form id="rideForm">
 
-              <div class="br-field mb-0">
-                <label class="br-label" for="employee">Passenger</label>
+              <!-- Passenger type -->
+              <div class="br-field br-field-stacked mb-0">
+                <label class="br-label">Passenger Type</label>
+                <div class="br-pax-grid" id="passengerTypeGrid">
+                  <label class="br-pax-card is-selected" data-pax="employee">
+                    <input type="radio" name="passengerType" value="employee" checked/>
+                    <span class="br-pax-icon"><i class="bi bi-person-fill"></i></span>
+                    <span class="br-pax-name">Employee</span>
+                  </label>
+                  <label class="br-pax-card" data-pax="guest">
+                    <input type="radio" name="passengerType" value="guest"/>
+                    <span class="br-pax-icon"><i class="bi bi-person-badge"></i></span>
+                    <span class="br-pax-name">Guest</span>
+                  </label>
+                  <label class="br-pax-card" data-pax="both">
+                    <input type="radio" name="passengerType" value="both"/>
+                    <span class="br-pax-icon"><i class="bi bi-people-fill"></i></span>
+                    <span class="br-pax-name">Both</span>
+                  </label>
+                </div>
+              </div>
+
+              <hr class="br-divider">
+
+              <!-- Employee row (shown for Employee + Both) -->
+              <div class="br-field mb-0" id="employeeRow">
+                <label class="br-label" for="employee">Employee</label>
                 <select class="form-select" name="employee" id="employee">
                   <option value="" disabled selected>Select employee</option>
                   <?php foreach ($employees as $row): ?>
@@ -335,6 +419,22 @@ $defaultRideType = $rideTypes[0]['value'] ?? 'Economy';
                 </select>
               </div>
               <input type="hidden" id="employeeName" name="employeeName"/>
+
+              <!-- Guest fields (shown for Guest + Both) -->
+              <div id="guestFields" style="display:none">
+                <hr class="br-divider">
+                <div class="br-field mb-0">
+                  <label class="br-label" for="guestName">Guest Name</label>
+                  <input type="text" class="form-control" id="guestName" name="guestName"
+                         placeholder="Full name of the guest"/>
+                </div>
+                <hr class="br-divider">
+                <div class="br-field mb-0">
+                  <label class="br-label" for="guestPhone">Guest Phone</label>
+                  <input type="text" class="form-control" id="guestPhone" name="guestPhone"
+                         placeholder="Contact number (optional)"/>
+                </div>
+              </div>
 
               <hr class="br-divider">
 
@@ -379,6 +479,16 @@ $defaultRideType = $rideTypes[0]['value'] ?? 'Economy';
                 <label class="br-label" for="pickupTime">Date &amp; Time</label>
                 <input type="datetime-local" class="form-control" name="pickupTime" id="pickupTime"/>
               </div>
+
+              <label class="br-schedule-card" for="scheduleForLater" id="scheduleCard">
+                <input type="checkbox" id="scheduleForLater"/>
+                <span class="br-schedule-tick"><i class="bi bi-check2"></i></span>
+                <span class="br-schedule-text">
+                  <span class="br-schedule-title">Schedule for later</span>
+                  <span class="br-schedule-hint">Saves as Scheduled — not dispatched immediately</span>
+                </span>
+                <i class="bi bi-calendar-check br-schedule-icon"></i>
+              </label>
 
               <hr class="br-divider">
 

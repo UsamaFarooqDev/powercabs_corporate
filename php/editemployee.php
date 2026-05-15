@@ -19,7 +19,6 @@ $name        = htmlspecialchars(trim($_POST['name'] ?? ''));
 $email       = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
 $contact     = htmlspecialchars(trim($_POST['phone'] ?? $_POST['contact'] ?? ''));
 $department  = htmlspecialchars(trim($_POST['department'] ?? ''));
-
 if ($employee_id === '' || $name === '' || $email === '') {
     echo json_encode(['success' => false, 'message' => 'Name and email are required.']);
     exit;

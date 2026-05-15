@@ -20,6 +20,8 @@ $pageTitle     = 'Dashboard';
 function normalizeCorporateRide(array $row): array {
   $statusRaw = (string)($row['status'] ?? '');
   $status = trim($statusRaw) === '' ? 'Pending' : ucwords(str_replace('_', ' ', strtolower($statusRaw)));
+  $source = strtolower(trim((string)($row['source'] ?? '')));
+  $category = $source === 'corporate meet_and_greet' ? 'Meet & Greet' : 'Corporate';
   return [
     'id' => (string)($row['id'] ?? ''),
     'employee' => $row['employee'] ?? '',
@@ -29,6 +31,7 @@ function normalizeCorporateRide(array $row): array {
     'vehicle_number' => $row['vehicle_number'] ?? 'N/A',
     'fare' => $row['fare_eur'] ?? 0,
     'status' => $status,
+    'category' => $category,
   ];
 }
 function isCorporateSource(array $row): bool {
@@ -43,8 +46,8 @@ try {
   $rides    = array_map('normalizeCorporateRide', $rows);
   $total_ride = count($rides);
   foreach ($rides as $row) {
-    if (($row['status'] ?? '') === 'Pending') $pending_rides++;
-    $expense += floatval($row['fare'] ?? 0);
+    if (in_array($row['status'] ?? '', ['Pending', 'Scheduled'])) $pending_rides++;
+    if (($row['status'] ?? '') === 'Completed') $expense += floatval($row['fare'] ?? 0);
   }
   try {
     $empRows   = $supabase->select('corporate_employees', ['cid' => $cid], '*');
@@ -176,6 +179,7 @@ try {
                 <th>Date & Time</th>
                 <th>Cab #</th>
                 <th>Cost</th>
+                <th>Category</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -186,6 +190,7 @@ try {
                   'Completed'   => 'badge-completed',
                   'In Progress' => 'badge-inprogress',
                   'Pending'     => 'badge-pending',
+                  'Scheduled'   => 'badge-scheduled',
                   'Cancelled'   => 'badge-cancelled',
                   default       => 'badge-pending',
                 };
@@ -193,6 +198,7 @@ try {
                   'Completed'   => 'bi-check-lg',
                   'In Progress' => 'bi-arrow-repeat',
                   'Pending'     => 'bi-clock',
+                  'Scheduled'   => 'bi-calendar-check',
                   'Cancelled'   => 'bi-x-lg',
                   default       => 'bi-clock',
                 };
@@ -215,6 +221,13 @@ try {
                 </td>
                 <td><?= htmlspecialchars($r['vehicle_number'] ?? 'N/A') ?></td>
                 <td>€<?= htmlspecialchars($r['fare'] ?? '0') ?></td>
+                <td>
+                  <?php if (($r['category'] ?? '') === 'Meet & Greet'): ?>
+                    <span style="font-size:11px;font-weight:600;color:#7c3aed;background:#f5f3ff;border-radius:6px;padding:2px 7px;white-space:nowrap">M&amp;G</span>
+                  <?php else: ?>
+                    <span style="font-size:11px;font-weight:600;color:#0369a1;background:#e0f2fe;border-radius:6px;padding:2px 7px;white-space:nowrap">Corporate</span>
+                  <?php endif; ?>
+                </td>
                 <td><span class="badge-status <?= $badgeClass ?>" title="<?= htmlspecialchars($status) ?>"><i class="bi <?= $badgeIcon ?>"></i></span></td>
               </tr>
               <?php endforeach; ?>
@@ -256,6 +269,10 @@ try {
   </script>
   <script src="js/script.js"></script>
   <script src="js/realtime-rides.js"></script>
+  <script>
+    // Silently cancel past pending/scheduled rides on page load
+    fetch('php/cleanup_rides.php', { credentials: 'same-origin' }).catch(() => {});
+  </script>
 
 </body>
 </html>

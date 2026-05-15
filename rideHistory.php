@@ -12,6 +12,8 @@ $rides     = [];
 function normalizeCorporateRide(array $row): array {
   $statusRaw = (string)($row['status'] ?? '');
   $status = trim($statusRaw) === '' ? 'Pending' : ucwords(str_replace('_', ' ', strtolower($statusRaw)));
+  $source = strtolower(trim((string)($row['source'] ?? '')));
+  $category = $source === 'corporate meet_and_greet' ? 'Meet & Greet' : 'Corporate';
   return [
     'id' => (string)($row['id'] ?? ''),
     'employee' => $row['employee'] ?? '',
@@ -21,6 +23,7 @@ function normalizeCorporateRide(array $row): array {
     'vehicle_number' => $row['vehicle_number'] ?? 'N/A',
     'fare' => $row['fare_eur'] ?? 0,
     'status' => $status,
+    'category' => $category,
   ];
 }
 function isCorporateSource(array $row): bool {
@@ -334,6 +337,7 @@ foreach ($rides as $r) {
                 <th>Date &amp; Time</th>
                 <th>Cab #</th>
                 <th>Cost</th>
+                <th>Category</th>
                 <th>Status</th>
                 <th class="text-end">Actions</th>
               </tr>
@@ -345,6 +349,7 @@ foreach ($rides as $r) {
                   'Completed'   => 'badge-completed',
                   'In Progress' => 'badge-inprogress',
                   'Pending'     => 'badge-pending',
+                  'Scheduled'   => 'badge-scheduled',
                   'Cancelled'   => 'badge-cancelled',
                   default       => 'badge-pending',
                 };
@@ -352,6 +357,7 @@ foreach ($rides as $r) {
                   'Completed'   => 'bi-check-lg',
                   'In Progress' => 'bi-arrow-repeat',
                   'Pending'     => 'bi-clock',
+                  'Scheduled'   => 'bi-calendar-check',
                   'Cancelled'   => 'bi-x-lg',
                   default       => 'bi-clock',
                 };
@@ -374,9 +380,21 @@ foreach ($rides as $r) {
                 </td>
                 <td><?= htmlspecialchars($r['vehicle_number'] ?? 'N/A') ?></td>
                 <td>€<?= htmlspecialchars($r['fare'] ?? '0') ?></td>
+                <td>
+                  <?php if (($r['category'] ?? '') === 'Meet & Greet'): ?>
+                    <span style="font-size:11px;font-weight:600;color:#7c3aed;background:#f5f3ff;border-radius:6px;padding:2px 7px;white-space:nowrap">M&amp;G</span>
+                  <?php else: ?>
+                    <span style="font-size:11px;font-weight:600;color:#0369a1;background:#e0f2fe;border-radius:6px;padding:2px 7px;white-space:nowrap">Corporate</span>
+                  <?php endif; ?>
+                </td>
                 <td><span class="badge-status <?= $badgeClass ?>" title="<?= htmlspecialchars($status) ?>"><i class="bi <?= $badgeIcon ?>"></i></span></td>
                 <td class="text-end">
-                  <?php if ($status === 'Completed' || $status === 'Cancelled'): ?>
+                  <?php
+                    // Completed and Cancelled are terminal — cannot be cancelled.
+                    // Pending, Scheduled, In Progress are all cancellable.
+                    $isFinalStatus = in_array($status, ['Completed', 'Cancelled']);
+                  ?>
+                  <?php if ($isFinalStatus): ?>
                     <span class="rh-status-final">—</span>
                   <?php else: ?>
                     <button type="button" class="btn-cancel-ride"
@@ -489,8 +507,9 @@ foreach ($rides as $r) {
     }
     window.rideRowExtraCells = function (ride) {
       const status = (ride.status || '').toString();
-      // Final statuses can't be cancelled — show a placeholder dash.
-      if (status === 'Completed' || status === 'Cancelled') {
+      // Only Completed and Cancelled are terminal. Pending, Scheduled, In Progress are cancellable.
+      const isFinal = status === 'Completed' || status === 'Cancelled';
+      if (isFinal) {
         return `<td class="text-end"><span class="rh-status-final">—</span></td>`;
       }
       return `
@@ -569,7 +588,7 @@ foreach ($rides as $r) {
           cancelModal.hide();
           if (typeof showToast === 'function') {
             showToast(
-              data.success ? 'Ride cancelled.' : (data.message || 'Failed to cancel ride'),
+              data.success ? 'Ride has been cancelled successfully' : (data.message || 'Failed to cancel ride'),
               data.success ? 'success' : 'error'
             );
           }
@@ -598,6 +617,10 @@ foreach ($rides as $r) {
   </script>
   <script src="js/script.js"></script>
   <script src="js/realtime-rides.js"></script>
+  <script>
+    // Silently cancel past pending/scheduled rides on page load
+    fetch('php/cleanup_rides.php', { credentials: 'same-origin' }).catch(() => {});
+  </script>
 
 </body>
 </html>

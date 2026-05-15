@@ -193,11 +193,10 @@ $airports = [
       border: 1px solid rgba(243,122,32,.25);
     }
     .mg-hero-title { font-size: 1.5rem; font-weight: 700; letter-spacing: -.01em; line-height: 1.2; }
-    .mg-hero-sub   { font-size: .9rem;  color: rgba(255,255,255,.65); line-height: 1.55; max-width: 640px; }
+    .mg-hero-sub   { font-size: .9rem;  color: rgba(255,255,255,.65); line-height: 1.55; max-width: 940px; }
 
     .mg-hero-pills {
       display: flex; flex-wrap: wrap; gap: 8px;
-      margin-top: 16px;
     }
     .mg-hero-pill {
       display: inline-flex; align-items: center; gap: 7px;
@@ -209,6 +208,25 @@ $airports = [
       color: rgba(255,255,255,.85);
     }
     .mg-hero-pill i { color: #f37a20; font-size: .8rem; }
+
+    .mg-hero-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: rgba(243,122,32,.15);
+      border: 1px solid rgba(243,122,32,.30);
+      color: #fb923c;
+      font-size: .69rem; font-weight: 700;
+      letter-spacing: .06em; text-transform: uppercase;
+      margin-bottom: 7px;
+    }
+    .mg-hero-badge i { font-size: .63rem; }
+
+    .mg-hero-footer {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      gap: 14px; flex-wrap: wrap;
+      margin-top: 16px;
+    }
 
     /* ── Service-type radio cards (Arrival / Departure) ── */
     .mg-service-grid {
@@ -418,7 +436,6 @@ $airports = [
 
     /* ── 10% premium banner inside the hero ── */
     .mg-hero-notice {
-      margin-top: 14px;
       display: flex; align-items: center; gap: 10px;
       padding: 9px 13px;
       border-radius: 10px;
@@ -650,8 +667,95 @@ $airports = [
       box-shadow: none;
     }
 
+    /* ── Payment method selector ── */
+    .mg-pay-methods {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;
+      margin-bottom: 16px;
+    }
+    .mg-pay-method {
+      position: relative;
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid #e2e8f0; border-radius: 10px;
+      background: #ffffff; cursor: pointer;
+      transition: border-color .15s, background .15s, box-shadow .15s;
+    }
+    .mg-pay-method:hover { border-color: #cbd5e1; background: #f8fafc; }
+    .mg-pay-method.is-selected {
+      border-color: #f37a20; background: #fff7f0;
+      box-shadow: 0 0 0 3px rgba(243,122,32,.10);
+    }
+    .mg-pay-method .mp-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: #f1f5f9; color: #475569;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 1rem;
+      transition: background .15s, color .15s;
+    }
+    .mg-pay-method.is-selected .mp-icon { background: #fff4eb; color: #f37a20; }
+    .mp-title { font-size: .88rem; font-weight: 600; color: #0f172a; }
+    .mp-sub   { font-size: .74rem; color: #64748b; margin-top: 1px; }
+
+    /* Stripe button — two-line variant */
+    .btn-stripe.two-line {
+      flex-direction: column; align-items: flex-start; gap: .25rem;
+      padding: .65rem 1.1rem;
+    }
+    .btn-stripe.two-line .stripe-top {
+      display: flex; align-items: center; gap: .45rem;
+    }
+    .btn-stripe.two-line .stripe-fee {
+      font-size: .72rem; font-weight: 400; opacity: .82; line-height: 1.3;
+    }
+
+    /* Company charge panel */
+    .mg-company-notice {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      background: #f0fdf4; border: 1px solid #bbf7d0;
+    }
+    .mg-company-notice .cn-icon {
+      width: 38px; height: 38px; border-radius: 9px;
+      background: #dcfce7; color: #16a34a;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 1.15rem;
+    }
+    .mg-company-notice .cn-title { font-size: .9rem; font-weight: 600; color: #0f172a; margin-bottom: 3px; }
+    .mg-company-notice .cn-sub   { font-size: .78rem; color: #64748b; line-height: 1.45; }
+
     /* ── In-summary fare row ── */
     .mg-summary .row-line .v-fare { color: #b45309; font-weight: 700; }
+
+    /* ── Passenger type cards ── */
+    .mg-pax-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px; margin-bottom: 18px;
+    }
+    .mg-pax-card {
+      position: relative;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 12px 10px;
+      border: 1px solid #e2e8f0; border-radius: 10px;
+      background: #ffffff; cursor: pointer; text-align: center;
+      transition: border-color .15s, background .15s, box-shadow .15s;
+    }
+    .mg-pax-card:hover { border-color: #cbd5e1; background: #f8fafc; }
+    .mg-pax-card.is-selected {
+      border-color: #f37a20; background: #fff7f0;
+      box-shadow: 0 0 0 3px rgba(243,122,32,.10);
+    }
+    .mg-pax-card input[type="radio"] { position: absolute; opacity: 0; pointer-events: none; }
+    .mg-pax-card .pax-ic {
+      width: 36px; height: 36px; border-radius: 9px;
+      background: #f1f5f9; color: #475569;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; flex-shrink: 0;
+      transition: background .15s, color .15s;
+    }
+    .mg-pax-card.is-selected .pax-ic { background: #fff4eb; color: #f37a20; }
+    .mg-pax-card .pax-nm { font-size: .82rem; font-weight: 600; color: #0f172a; }
   </style>
 </head>
 <body>
@@ -666,28 +770,24 @@ $airports = [
         <div class="mg-hero-title-row">
           <div class="mg-hero-icon"><i class="bi bi-airplane-fill"></i></div>
           <div>
+            <span class="mg-hero-badge"><i class="bi bi-star-fill"></i> Premium Transfer Service</span>
             <div class="mg-hero-title">Airport Meet &amp; Greet</div>
-            <div class="mg-hero-sub">
-              Premium pre-booked airport service for your employees &mdash; a uniformed driver
-              meets them with a name placard, assists with luggage, and tracks the flight in real time.
-            </div>
+            <div class="mg-hero-sub">A premium, pre-booked airport transfer service for your employees, clients, and VIP guests — delivered by professional drivers who provide a personalised meet-and-greet with a name placard, assist with luggage, and monitor flights in real time to ensure a smooth and punctual arrival. For VIP collections, our limousine service features professionally dressed chauffeurs; simply select the limousine option for this elevated experience.</div>
           </div>
         </div>
-        <div class="mg-hero-pills">
-          <span class="mg-hero-pill"><i class="bi bi-person-vcard-fill"></i> Personal name placard</span>
-          <span class="mg-hero-pill"><i class="bi bi-bag-fill"></i> Luggage assistance</span>
-          <span class="mg-hero-pill"><i class="bi bi-broadcast"></i> Live flight tracking</span>
-          <span class="mg-hero-pill"><i class="bi bi-stopwatch"></i> 60-min free wait</span>
-          <span class="mg-hero-pill"><i class="bi bi-shield-check"></i> Vetted drivers</span>
-        </div>
 
-        <!-- 10% premium notice -->
-        <div class="mg-hero-notice">
-          <i class="bi bi-info-circle-fill"></i>
-          <span>
-            <strong>10% premium</strong> applies to all pre-booked Meet &amp; Greet
-            services on top of the standard ride fare &mdash; covering placard, luggage assistance and flight tracking.
-          </span>
+        <div class="mg-hero-footer">
+          <div class="mg-hero-pills">
+            <span class="mg-hero-pill"><i class="bi bi-person-vcard-fill"></i> Personal name placard</span>
+            <span class="mg-hero-pill"><i class="bi bi-bag-fill"></i> Luggage assistance</span>
+            <span class="mg-hero-pill"><i class="bi bi-broadcast"></i> Live flight tracking</span>
+            <span class="mg-hero-pill"><i class="bi bi-stopwatch"></i> 60-min free wait</span>
+            <span class="mg-hero-pill"><i class="bi bi-shield-check"></i> Vetted drivers</span>
+          </div>
+          <div class="mg-hero-notice">
+            <i class="bi bi-info-circle-fill"></i>
+            <span><strong>10% premium</strong> applies on top of the standard ride fare.</span>
+          </div>
         </div>
       </div>
     </div>
@@ -734,13 +834,33 @@ $airports = [
             <div class="card-body p-4">
               <div class="mb-3">
                 <h6 class="mg-card-title mb-0">Passenger</h6>
-                <span class="mg-card-sub d-block mt-1">Who is travelling? Their contact details will be passed to the driver.</span>
+                <span class="mg-card-sub d-block mt-1">Who is travelling? Contact details will be passed to the driver.</span>
+              </div>
+
+              <!-- Passenger type selector -->
+              <div class="mg-pax-grid" id="paxTypeGrid">
+                <label class="mg-pax-card is-selected" data-pax="employee">
+                  <input type="radio" name="passengerType" value="employee" checked/>
+                  <span class="pax-ic"><i class="bi bi-person-fill"></i></span>
+                  <span class="pax-nm">Employee</span>
+                </label>
+                <label class="mg-pax-card" data-pax="guest">
+                  <input type="radio" name="passengerType" value="guest"/>
+                  <span class="pax-ic"><i class="bi bi-person-badge"></i></span>
+                  <span class="pax-nm">Guest</span>
+                </label>
+                <label class="mg-pax-card" data-pax="both">
+                  <input type="radio" name="passengerType" value="both"/>
+                  <span class="pax-ic"><i class="bi bi-people-fill"></i></span>
+                  <span class="pax-nm">Both</span>
+                </label>
               </div>
 
               <div class="row g-3">
-                <div class="col-md-6">
+                <!-- Employee dropdown: shown for Employee + Both -->
+                <div class="col-md-6" id="mgEmployeeCol">
                   <label class="mg-label" for="employee">Employee</label>
-                  <select id="employee" name="employee_id" class="mg-select" required>
+                  <select id="employee" name="employee_id" class="mg-select">
                     <option value="">— Select an employee —</option>
                     <?php foreach ($employees as $emp): ?>
                       <option
@@ -752,6 +872,24 @@ $airports = [
                       ><?= htmlspecialchars((string)($emp['name'] ?? '')) ?></option>
                     <?php endforeach; ?>
                   </select>
+                </div>
+                <!-- Guest name: shown for Guest + Both -->
+                <div class="col-md-6" id="mgGuestNameCol" style="display:none">
+                  <label class="mg-label" for="guestName">Guest Name</label>
+                  <div class="mg-input-prefix">
+                    <i class="bi bi-person-badge pre-ic"></i>
+                    <input type="text" id="guestName" name="guest_name" class="mg-input"
+                           placeholder="Full name of the guest"/>
+                  </div>
+                </div>
+                <!-- Guest phone: shown for Guest + Both -->
+                <div class="col-md-6" id="mgGuestPhoneCol" style="display:none">
+                  <label class="mg-label" for="guestPhone">Guest Phone</label>
+                  <div class="mg-input-prefix">
+                    <i class="bi bi-telephone pre-ic"></i>
+                    <input type="text" id="guestPhone" name="guest_phone" class="mg-input"
+                           placeholder="Contact number (optional)"/>
+                  </div>
                 </div>
                 <div class="col-md-3">
                   <label class="mg-label" for="passengers">Passengers</label>
@@ -780,18 +918,6 @@ $airports = [
                     <h6 class="mg-card-title mb-0">Ride Type</h6>
                     <span class="mg-card-sub d-block mt-1">Pick the vehicle class. Fare scales with the ride type and the 10% Meet &amp; Greet premium.</span>
                   </div>
-                  <?php if ($rideTypesFromDb): ?>
-                    <span class="mg-source-tag mg-source-live" title="ride_types · <?= count($rideTypes) ?> rows">
-                      <i class="bi bi-database-fill-check"></i>
-                      Live from <code>ride_types</code>
-                      <span class="mg-source-count"><?= count($rideTypes) ?></span>
-                    </span>
-                  <?php else: ?>
-                    <span class="mg-source-tag mg-source-fallback" title="ride_types unreachable or empty — using static fallback">
-                      <i class="bi bi-exclamation-triangle-fill"></i>
-                      Default options
-                    </span>
-                  <?php endif; ?>
                 </div>
               </div>
 
@@ -848,9 +974,11 @@ $airports = [
                     <option value="">Driver decides on the day</option>
                     <option>Terminal 1 — Arrivals</option>
                     <option>Terminal 2 — Arrivals</option>
-                    <option>Terminal 3 — Departures</option>
-                    <option>Terminal 4 — Departures</option>
-                    <option>Terminal 5 — Limousine</option>
+                    <option>Terminal 1 — Departures</option>
+                    <option>Terminal 2 — Departures</option>
+                    <option>Terminal not sure</option>
+                    <option>Platinum Arrivals</option>
+                    <option>Platinum Departures</option>
                   </select>
                 </div>
                 <div class="col-md-6">
@@ -972,47 +1100,81 @@ $airports = [
             <div class="card-body p-4">
               <div class="mb-3">
                 <h6 class="mg-card-title mb-0">Payment</h6>
-                <span class="mg-card-sub d-block mt-1">
-                  Pre-booked Meet &amp; Greet rides are paid up-front via Stripe.
-                  Once paid, confirm below to release your booking to dispatch.
-                </span>
+                <span class="mg-card-sub d-block mt-1">Choose how this booking will be paid.</span>
               </div>
 
               <div class="mg-pay-card">
-                <div class="mg-pay-row">
-                  <a href="https://buy.stripe.com/5kQ6oH1NL1Zpd81arZfQI02"
-                     target="_blank" rel="noopener"
-                     class="btn-stripe" id="stripeBtn">
-                    <svg viewBox="0 0 60 25" xmlns="http://www.w3.org/2000/svg">
-                      <path fill="#fff" d="M59.64 14.28h-8.06v-1.6c0-.94.56-1.5 1.27-1.5.66 0 1.16.32 1.21 1.04l4.71-.27c-.21-2.84-2.5-4.05-5.94-4.05-3.65 0-6.04 1.96-6.04 5.36v6.5c0 3.4 2.39 5.36 6.04 5.36 3.45 0 5.74-1.21 5.94-4.06l-4.71-.27c-.05.72-.55 1.04-1.21 1.04-.71 0-1.27-.55-1.27-1.5v-1.6h8.06v-2.45zM30.27 7.91c-2.05 0-3.36.96-4.04 1.62l-.27-1.29h-4.55v22.97l5.17-1.1V25.6c.74.54 1.83 1.31 3.65 1.31 3.7 0 7.06-2.97 7.06-9.51 0-5.99-3.41-9.49-7.02-9.49zm-1.24 14.6c-1.22 0-1.94-.43-2.43-.96l-.04-7.65c.53-.59 1.27-1 2.47-1 1.89 0 3.21 2.13 3.21 4.78 0 2.7-1.3 4.83-3.21 4.83zm-15.7-7.91c0-1.6 1.28-2.21 3.4-2.21 3.04 0 6.88.93 9.92 2.59V8.49c-3.31-1.34-6.59-1.86-9.92-1.86-8.13 0-13.5 4.27-13.5 11.4 0 11.13 15.21 9.34 15.21 14.16 0 1.88-1.6 2.46-3.83 2.46-3.32 0-7.59-1.36-10.96-3.21v5.6c3.74 1.62 7.55 2.31 10.96 2.31 8.36 0 14.04-4.16 14.04-11.42-.04-11.99-15.32-9.85-15.32-14.34zM41.85 5.55l-5.17 1.1V2L41.85.9v4.65zm0 2.69h-5.17V25.93h5.17V8.24z"/>
-                    </svg>
-                    Pay with Stripe
-                    <i class="bi bi-arrow-up-right" style="font-size:.85rem"></i>
-                  </a>
-                  <div class="mg-pay-amount">
-                    Amount due (incl. 10% premium): <strong id="payAmount">€—</strong>
+
+                <!-- Payment method selector -->
+                <div class="mg-pay-methods">
+                  <div class="mg-pay-method is-selected" id="methodStripe" data-method="stripe">
+                    <div class="mp-icon"><i class="bi bi-credit-card"></i></div>
+                    <div>
+                      <div class="mp-title">Pay via Stripe</div>
+                      <div class="mp-sub">Secure online payment</div>
+                    </div>
+                  </div>
+                  <div class="mg-pay-method" id="methodCompany" data-method="company">
+                    <div class="mp-icon"><i class="bi bi-building"></i></div>
+                    <div>
+                      <div class="mp-title">Charge to Company</div>
+                      <div class="mp-sub">Invoice your company account</div>
+                    </div>
                   </div>
                 </div>
 
-                <div class="mg-pay-question">
-                  <div class="q">
-                    <i class="bi bi-credit-card-2-front me-1" style="color:#f37a20"></i>
-                    Did you complete the Stripe payment?
+                <!-- Stripe panel -->
+                <div id="stripePanel">
+                  <div class="mg-pay-row mb-3">
+                    <a href="https://buy.stripe.com/5kQ6oH1NL1Zpd81arZfQI02"
+                       target="_blank" rel="noopener"
+                       class="btn-stripe two-line" id="stripeBtn">
+                      <span class="stripe-top">
+                        <svg viewBox="0 0 60 25" xmlns="http://www.w3.org/2000/svg" style="width:38px;height:14px">
+                          <path fill="#fff" d="M59.64 14.28h-8.06v-1.6c0-.94.56-1.5 1.27-1.5.66 0 1.16.32 1.21 1.04l4.71-.27c-.21-2.84-2.5-4.05-5.94-4.05-3.65 0-6.04 1.96-6.04 5.36v6.5c0 3.4 2.39 5.36 6.04 5.36 3.45 0 5.74-1.21 5.94-4.06l-4.71-.27c-.05.72-.55 1.04-1.21 1.04-.71 0-1.27-.55-1.27-1.5v-1.6h8.06v-2.45zM30.27 7.91c-2.05 0-3.36.96-4.04 1.62l-.27-1.29h-4.55v22.97l5.17-1.1V25.6c.74.54 1.83 1.31 3.65 1.31 3.7 0 7.06-2.97 7.06-9.51 0-5.99-3.41-9.49-7.02-9.49zm-1.24 14.6c-1.22 0-1.94-.43-2.43-.96l-.04-7.65c.53-.59 1.27-1 2.47-1 1.89 0 3.21 2.13 3.21 4.78 0 2.7-1.3 4.83-3.21 4.83zm-15.7-7.91c0-1.6 1.28-2.21 3.4-2.21 3.04 0 6.88.93 9.92 2.59V8.49c-3.31-1.34-6.59-1.86-9.92-1.86-8.13 0-13.5 4.27-13.5 11.4 0 11.13 15.21 9.34 15.21 14.16 0 1.88-1.6 2.46-3.83 2.46-3.32 0-7.59-1.36-10.96-3.21v5.6c3.74 1.62 7.55 2.31 10.96 2.31 8.36 0 14.04-4.16 14.04-11.42-.04-11.99-15.32-9.85-15.32-14.34zM41.85 5.55l-5.17 1.1V2L41.85.9v4.65zm0 2.69h-5.17V25.93h5.17V8.24z"/>
+                        </svg>
+                        Pay with Stripe
+                        <i class="bi bi-arrow-up-right" style="font-size:.8rem"></i>
+                      </span>
+                      <span class="stripe-fee">Amount due (additional €10.00 for this service will apply)</span>
+                    </a>
+                    <div class="mg-pay-amount">
+                      Total due (incl. 10% premium): <strong id="payAmount">€—</strong>
+                    </div>
                   </div>
-                  <div class="mg-pay-options">
-                    <label class="mg-pay-opt is-yes" data-paid="yes">
-                      <input type="radio" name="paid" value="yes"/>
-                      <i class="bi bi-check-circle-fill"></i> Yes, paid
-                    </label>
-                    <label class="mg-pay-opt is-no is-selected" data-paid="no">
-                      <input type="radio" name="paid" value="no" checked/>
-                      <i class="bi bi-x-circle-fill"></i> Not yet
-                    </label>
-                  </div>
-                  <div class="mg-help-text mt-2" id="payHint">
-                    Confirm Booking unlocks once you mark the payment as paid.
+
+                  <div class="mg-pay-question">
+                    <div class="q">
+                      <i class="bi bi-credit-card-2-front me-1" style="color:#f37a20"></i>
+                      Did you complete the Stripe payment?
+                    </div>
+                    <div class="mg-pay-options">
+                      <label class="mg-pay-opt is-yes" data-paid="yes">
+                        <input type="radio" name="paid" value="yes"/>
+                        <i class="bi bi-check-circle-fill"></i> Yes, paid
+                      </label>
+                      <label class="mg-pay-opt is-no is-selected" data-paid="no">
+                        <input type="radio" name="paid" value="no" checked/>
+                        <i class="bi bi-x-circle-fill"></i> Not yet
+                      </label>
+                    </div>
+                    <div class="mg-help-text mt-2" id="payHint">
+                      Confirm Booking unlocks once you mark the payment as paid.
+                    </div>
                   </div>
                 </div>
+
+                <!-- Company charge panel -->
+                <div id="companyPanel" style="display:none">
+                  <div class="mg-company-notice">
+                    <div class="cn-icon"><i class="bi bi-building-check"></i></div>
+                    <div>
+                      <div class="cn-title">Charge to company account</div>
+                      <div class="cn-sub">This booking will be invoiced to your company account. No upfront payment is required — click Confirm Booking below to send it to dispatch.</div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>
@@ -1217,7 +1379,13 @@ $airports = [
 
     // ── Refs ─────────────────────────────────────────────
     const form         = document.getElementById('meetGreetForm');
-    const empSel       = document.getElementById('employee');
+    const empSel        = document.getElementById('employee');
+    const guestNameInput = document.getElementById('guestName');
+    const guestPhoneInput = document.getElementById('guestPhone');
+    const paxTypeGrid   = document.getElementById('paxTypeGrid');
+    const mgEmployeeCol = document.getElementById('mgEmployeeCol');
+    const mgGuestNameCol = document.getElementById('mgGuestNameCol');
+    const mgGuestPhoneCol = document.getElementById('mgGuestPhoneCol');
     const passInput    = document.getElementById('passengers');
     const lugInput     = document.getElementById('luggage');
     const placard      = document.getElementById('placard');
@@ -1282,6 +1450,28 @@ $airports = [
       return `${dd} ${mm} ${yy} · ${h}:${min} ${ap}`;
     }
 
+    // ── Passenger type cards ─────────────────────────────
+    function getMgPassengerType() {
+      return document.querySelector('input[name="passengerType"]:checked')?.value || 'employee';
+    }
+    function applyMgPassengerType(type) {
+      const isEmp   = type === 'employee' || type === 'both';
+      const isGuest = type === 'guest'    || type === 'both';
+      if (mgEmployeeCol)   mgEmployeeCol.style.display   = isEmp   ? '' : 'none';
+      if (mgGuestNameCol)  mgGuestNameCol.style.display  = isGuest ? '' : 'none';
+      if (mgGuestPhoneCol) mgGuestPhoneCol.style.display = isGuest ? '' : 'none';
+      refreshSummary();
+    }
+    paxTypeGrid?.addEventListener('click', (e) => {
+      const card = e.target.closest('.mg-pax-card');
+      if (!card) return;
+      paxTypeGrid.querySelectorAll('.mg-pax-card').forEach(c => c.classList.remove('is-selected'));
+      card.classList.add('is-selected');
+      const radio = card.querySelector('input[type="radio"]');
+      if (radio) radio.checked = true;
+      applyMgPassengerType(card.dataset.pax || 'employee');
+    });
+
     // ── Service-type radio cards ─────────────────────────
     document.querySelectorAll('.mg-service-card').forEach(card => {
       card.addEventListener('click', () => {
@@ -1338,7 +1528,8 @@ $airports = [
     });
 
     // ── Wire form events to live summary ────────────────
-    [empSel, passInput, lugInput, placard, airline, flightNo, flightTime, addressInput, terminalSel, notes]
+    [empSel, passInput, lugInput, placard, airline, flightNo, flightTime, addressInput, terminalSel, notes,
+     guestNameInput, guestPhoneInput]
       .forEach(el => el && el.addEventListener('input', refreshSummary));
     // <select> elements don't always emit `input` reliably — also bind change.
     terminalSel?.addEventListener('change', refreshSummary);
@@ -1362,13 +1553,25 @@ $airports = [
     }
 
     function refreshSummary() {
-      const type = getServiceType();
-      const ap   = getAirport();
-      const opt  = empSel.options[empSel.selectedIndex];
-      const empName = opt && opt.value ? (opt.dataset.name || '') : '';
+      const type    = getServiceType();
+      const paxType = getMgPassengerType();
+      const ap      = getAirport();
+      const opt     = empSel.options[empSel.selectedIndex];
+      const empName   = opt && opt.value ? (opt.dataset.name || '') : '';
+      const guestName = (guestNameInput?.value || '').trim();
+
+      let passengerLabel = '';
+      if (paxType === 'employee') {
+        passengerLabel = empName;
+      } else if (paxType === 'guest') {
+        passengerLabel = guestName ? `${guestName} (Guest)` : '';
+      } else {
+        const parts = [empName, guestName ? `${guestName} (Guest)` : ''].filter(Boolean);
+        passengerLabel = parts.join(' + ');
+      }
 
       setText(sumService,   type, false);
-      setText(sumPassenger, empName);
+      setText(sumPassenger, passengerLabel);
       setText(sumAirport,   ap.code ? `${ap.code} · ${ap.name}` : '', false);
       setText(sumFlight,    [airline.value.trim(), flightNo.value.trim()].filter(Boolean).join(' · '));
       setText(sumDateTime,  fmtDateTime(flightTime.value));
@@ -1391,6 +1594,7 @@ $airports = [
 
     // Initial sync
     applyServiceType('Arrival');
+    applyMgPassengerType('employee');
     refreshSummary();
 
     // ── Google Maps + Places Autocomplete + fare calc ───
@@ -1548,10 +1752,35 @@ $airports = [
 
     flightTime.addEventListener('change', recalculateFareForCurrentRoute);
 
-    // ── Payment confirmation toggle ─────────────────────
+    // ── Payment method selector (Stripe vs Company) ─────
+    let currentPaymentMethod = 'stripe';
+    const methodStripe  = document.getElementById('methodStripe');
+    const methodCompany = document.getElementById('methodCompany');
+    const stripePanel   = document.getElementById('stripePanel');
+    const companyPanel  = document.getElementById('companyPanel');
+
+    function setPaymentMethod(method) {
+      currentPaymentMethod = method;
+      const isStripe = method === 'stripe';
+      methodStripe.classList.toggle('is-selected',  isStripe);
+      methodCompany.classList.toggle('is-selected', !isStripe);
+      stripePanel.style.display  = isStripe ? '' : 'none';
+      companyPanel.style.display = isStripe ? 'none' : '';
+      if (isStripe) {
+        const paid = document.querySelector('input[name="paid"]:checked')?.value === 'yes';
+        confirmBtn.disabled = !paid;
+      } else {
+        confirmBtn.disabled = false;
+      }
+    }
+    methodStripe?.addEventListener('click',  () => setPaymentMethod('stripe'));
+    methodCompany?.addEventListener('click', () => setPaymentMethod('company'));
+
+    // ── Payment confirmation toggle (Stripe only) ───────
     const payOpts = document.querySelectorAll('.mg-pay-opt');
     payOpts.forEach(opt => {
       opt.addEventListener('click', () => {
+        if (currentPaymentMethod !== 'stripe') return;
         payOpts.forEach(o => o.classList.remove('is-selected'));
         opt.classList.add('is-selected');
         const radio = opt.querySelector('input[type="radio"]');
@@ -1573,7 +1802,22 @@ $airports = [
       e.preventDefault();
 
       // Basic validation
-      if (!empSel.value) { empSel.focus(); empSel.reportValidity?.(); return; }
+      const paxType  = getMgPassengerType();
+      const isEmpReq = paxType === 'employee' || paxType === 'both';
+      const isGstReq = paxType === 'guest'    || paxType === 'both';
+      const guestNameVal  = (guestNameInput?.value  || '').trim();
+      const guestPhoneVal = (guestPhoneInput?.value || '').trim();
+
+      if (isEmpReq && !empSel.value) {
+        showToast?.('Please select an employee.', 'error');
+        empSel.focus();
+        return;
+      }
+      if (isGstReq && !guestNameVal) {
+        showToast?.('Please enter the guest name.', 'error');
+        guestNameInput?.focus();
+        return;
+      }
       if (!flightNo.value.trim()) { flightNo.focus(); return; }
       if (!flightTime.value)      { flightTime.focus(); return; }
       if (!addressInput.value.trim()) { addressInput.focus(); return; }
@@ -1581,7 +1825,8 @@ $airports = [
         showToast?.('Please pick an airport and an address so we can calculate fare.', 'error');
         return;
       }
-      const paid = document.querySelector('input[name="paid"]:checked')?.value === 'yes';
+      const paid = currentPaymentMethod === 'company'
+        || document.querySelector('input[name="paid"]:checked')?.value === 'yes';
       if (!paid) { showToast?.('Please mark the Stripe payment as completed first.', 'error'); return; }
 
       const opt    = empSel.options[empSel.selectedIndex];
@@ -1595,14 +1840,17 @@ $airports = [
 
       const coords = currentRouteCoords || {};
       const payload = {
-        service_type: getServiceType(),
-        airport_code: ap.code,
-        airport_name: ap.name,
-        terminal:     terminalSel.value || '',
-        employee_id:    empSel.value,
-        employee_name:  opt?.dataset.name  || '',
-        employee_email: opt?.dataset.email || '',
-        employee_phone: opt?.dataset.phone || '',
+        passenger_type: paxType,
+        service_type:   getServiceType(),
+        airport_code:   ap.code,
+        airport_name:   ap.name,
+        terminal:       terminalSel.value || '',
+        employee_id:    isEmpReq ? empSel.value : '',
+        employee_name:  isEmpReq ? (opt?.dataset.name  || '') : guestNameVal,
+        employee_email: isEmpReq ? (opt?.dataset.email || '') : '',
+        employee_phone: isEmpReq ? (opt?.dataset.phone || '') : guestPhoneVal,
+        guest_name:     guestNameVal,
+        guest_phone:    guestPhoneVal,
         airline:        airline.value.trim(),
         flight_no:      flightNo.value.trim(),
         flight_time:    flightTime.value,
@@ -1620,7 +1868,7 @@ $airports = [
         distance:       currentDistanceKm,
         eta:            currentDurationMin,
         fare,
-        paid_via:       'stripe',
+        paid_via:       currentPaymentMethod,
       };
 
       const submitBtn = confirmBtn;
@@ -1649,7 +1897,9 @@ $airports = [
             document.getElementById('successFlight').textContent  =
               [payload.airline, payload.flight_no].filter(Boolean).join(' · ') || '—';
             document.getElementById('successFare').textContent    =
-              '€' + Number(payload.fare || 0).toFixed(2);
+              payload.paid_via === 'company'
+                ? 'Charged to company account'
+                : '€' + Number(payload.fare || 0).toFixed(2);
             confirmModal.show();
           } else {
             showToast?.(data.message || 'Failed to save booking.', 'error');
@@ -1665,6 +1915,7 @@ $airports = [
     // ── Success-modal actions: reset form when closed / "Book another" ──
     function resetMeetGreetForm() {
       try { form.reset(); } catch (_) {}
+      setPaymentMethod('stripe');
       // Restore default selections + clear computed state
       document.querySelectorAll('.mg-service-card').forEach((c, i) =>
         c.classList.toggle('is-selected', i === 0));
@@ -1692,6 +1943,11 @@ $airports = [
       mgMapWrap?.classList.remove('has-route');
       try { mgDirRen?.set('directions', null); } catch (_) {}
       renderFareEmpty();
+
+      // Reset passenger type to Employee
+      paxTypeGrid?.querySelectorAll('.mg-pax-card').forEach((c, i) =>
+        c.classList.toggle('is-selected', i === 0));
+      applyMgPassengerType('employee');
 
       applyServiceType('Arrival');
       refreshSummary();

@@ -25,16 +25,32 @@ if (!is_array($data)) {
 }
 
 // ── Validate required fields ──
-$required = ['employee_id', 'employee_name', 'pickup', 'dropoff', 'flight_no', 'flight_time', 'fare', 'distance', 'carType'];
-foreach ($required as $f) {
+$baseRequired = ['pickup', 'dropoff', 'flight_no', 'flight_time', 'fare', 'distance', 'carType'];
+foreach ($baseRequired as $f) {
     if (!array_key_exists($f, $data) || $data[$f] === '' || $data[$f] === null) {
         echo json_encode(['success' => false, 'message' => "Missing field: $f"]);
         exit;
     }
 }
+$passengerType = trim((string)($data['passenger_type'] ?? 'employee'));
+$isEmployee    = in_array($passengerType, ['employee', 'both'], true);
+$isGuest       = in_array($passengerType, ['guest', 'both'], true);
+$guestName     = trim((string)($data['guest_name']  ?? ''));
+$guestPhone    = trim((string)($data['guest_phone'] ?? ''));
+
+if ($isEmployee && (empty($data['employee_id']) || empty($data['employee_name']))) {
+    echo json_encode(['success' => false, 'message' => 'Employee is required.']);
+    exit;
+}
+if ($isGuest && $guestName === '') {
+    echo json_encode(['success' => false, 'message' => 'Guest name is required.']);
+    exit;
+}
 
 $pickupTimeIso = date('Y-m-d H:i:s', strtotime((string)$data['flight_time']));
 $serviceType   = (string)($data['service_type'] ?? 'Arrival');
+$paidVia       = trim((string)($data['paid_via'] ?? 'stripe'));
+$paymentMethod = ($paidVia === 'company') ? 'Bill to company' : 'stripe';
 
 // Defence-in-depth: only accept terminals from the curated list. Anything
 // else is silently treated as "Driver decides" so the dispatcher never sees
@@ -42,9 +58,11 @@ $serviceType   = (string)($data['service_type'] ?? 'Arrival');
 $allowedTerminals = [
     'Terminal 1 — Arrivals',
     'Terminal 2 — Arrivals',
-    'Terminal 3 — Departures',
-    'Terminal 4 — Departures',
-    'Terminal 5 — Limousine',
+    'Terminal 1 — Departures',
+    'Terminal 2 — Departures',
+    'Terminal not sure',
+    'Platinum Arrivals',
+    'Platinum Departures',
 ];
 $terminalRaw = trim((string)($data['terminal'] ?? ''));
 $terminal    = in_array($terminalRaw, $allowedTerminals, true) ? $terminalRaw : '';
@@ -64,6 +82,7 @@ $notesParts[] = sprintf('Pax: %d · Bags: %d',
     intval($data['luggage']    ?? 0)
 );
 if (!empty($data['placard'])) $notesParts[] = 'Placard: ' . $data['placard'];
+if ($guestName !== '')        $notesParts[] = 'Guest: '   . $guestName . ($guestPhone !== '' ? " ($guestPhone)" : '');
 if (!empty($data['notes']))   $notesParts[] = 'Note: '    . $data['notes'];
 $mgNotes = implode(' · ', $notesParts);
 
@@ -71,9 +90,9 @@ $mgNotes = implode(' · ', $notesParts);
 $insertPayload = [
     'pickup_addr'    => (string)$data['pickup'],
     'dest_addr'      => (string)$data['dropoff'],
-    'payment_method' => 'stripe',
+    'payment_method' => $paymentMethod,
     'ride_type'      => (string)$data['carType'],
-    'status'         => 'Pending',
+    'status'         => 'Scheduled',
     'source'         => 'corporate meet_and_greet',
     'cid'            => $cid,
     'fare_eur'       => floatval($data['fare']),
@@ -83,10 +102,15 @@ $insertPayload = [
     'enroute_at'     => $pickupTimeIso,
 ];
 // Keep only business-identity compatibility fields, avoid duplicate ride metrics.
+$effectiveEmpName = $isEmployee ? (string)($data['employee_name'] ?? '') : $guestName;
+$effectiveEmpId   = $isEmployee ? (string)($data['employee_id']   ?? '') : '';
 $optionalLegacy = [
     'company'        => $companyName,
-    'employee'       => (string)$data['employee_name'],
-    'employee_id'    => (string)$data['employee_id']
+    'employee'       => $effectiveEmpName,
+    'employee_id'    => $effectiveEmpId,
+    'guest_name'     => $guestName,
+    'guest_phone'    => $guestPhone,
+    'passenger_type' => $passengerType,
 ];
 foreach ($optionalLegacy as $k => $v) {
     if ($v !== null && $v !== '') {

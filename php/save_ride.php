@@ -60,16 +60,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = json_decode(file_get_contents('php://input'), true);
 
     // Validate required fields
-    $requiredFields = ['employee_id', 'employee_name', 'pickup', 'dropoff', 'carType', 'pickupTime', 'paymentSource', 'distance', 'eta', 'fare'];
-    foreach ($requiredFields as $field) {
+    $baseRequired = ['pickup', 'dropoff', 'carType', 'pickupTime', 'paymentSource', 'distance', 'eta', 'fare'];
+    foreach ($baseRequired as $field) {
         if (!array_key_exists($field, $data) || $data[$field] === '' || $data[$field] === null) {
             echo json_encode(['success' => false, 'message' => "Missing or empty field: $field"]);
             exit;
         }
     }
 
-    $employee_id    = $data['employee_id'];
-    $employee       = $data['employee_name'];
+    $passengerType = trim((string)($data['passenger_type'] ?? 'employee'));
+    $isEmployee    = in_array($passengerType, ['employee', 'both'], true);
+    $isGuest       = in_array($passengerType, ['guest', 'both'], true);
+    $guestName     = trim((string)($data['guest_name']  ?? ''));
+    $guestPhone    = trim((string)($data['guest_phone'] ?? ''));
+
+    if ($isEmployee && (empty($data['employee_id']) || empty($data['employee_name']))) {
+        echo json_encode(['success' => false, 'message' => 'Employee is required.']);
+        exit;
+    }
+    if ($isGuest && $guestName === '') {
+        echo json_encode(['success' => false, 'message' => 'Guest name is required.']);
+        exit;
+    }
+
+    $employee_id    = $isEmployee ? $data['employee_id']   : '';
+    $employee       = $isEmployee ? $data['employee_name'] : $guestName;
     $pickup         = $data['pickup'];
     $destination    = $data['dropoff'];
     $carType        = $data['carType'];
@@ -79,8 +94,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $eta            = floatval($data['eta']);
     $distance       = floatval($data['distance']);
 
-    // Other fields
-    $status = 'Pending';
+    // Other fields — accept 'scheduled' from payload, default to 'Pending'
+    $statusRaw = strtolower(trim((string)($data['status'] ?? 'pending')));
+    $status = $statusRaw === 'scheduled' ? 'Scheduled' : 'Pending';
     $pickupTimeIso = date('Y-m-d H:i:s', strtotime($pickupTime));
 
     try {
@@ -102,9 +118,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ];
     // Keep only business-identity compatibility fields, avoid duplicate ride metrics.
     $optional = [
-        'company' => $companyname,
-        'employee' => $employee,
-        'employee_id' => $employee_id
+        'company'        => $companyname,
+        'employee'       => $employee,
+        'employee_id'    => $employee_id,
+        'guest_name'     => $guestName,
+        'guest_phone'    => $guestPhone,
+        'passenger_type' => $passengerType,
     ];
     foreach ($optional as $k => $v) {
         if ($v !== null && $v !== '') $insertPayload[$k] = $v;
@@ -131,9 +150,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     // Compose WhatsApp message for Dispatcher
+    $passengerLine = $isEmployee ? "$employee (ID: $employee_id)" : "$employee";
+    if ($isGuest && $guestName !== '') {
+        $passengerLine .= $isEmployee ? " + Guest: $guestName" : " (Guest)";
+    }
     $message = "New Ride Request\n\n"
         . "Company: $companyname\n"
-        . "Passenger: $employee (ID: $employee_id)\n"
+        . "Passenger: $passengerLine\n"
         . "Pickup: $pickup\n"
         . "Drop-off: $destination\n"
         . "Pickup Time: $pickupTime\n"

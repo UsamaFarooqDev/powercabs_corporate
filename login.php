@@ -212,6 +212,29 @@ unset($_SESSION['success'], $_SESSION['error']);
       margin-top: 16px;
     }
 
+    .login-legal-row {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--slate-200);
+    }
+    .login-legal-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: .78rem; font-weight: 500;
+      color: var(--slate-500);
+      text-decoration: none;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      margin-left: -8px;
+      transition: color .15s, background .15s, border-color .15s;
+    }
+    .login-legal-link:hover {
+      color: var(--orange);
+      background: var(--orange-soft);
+      border-color: rgba(243,122,32,.2);
+    }
+    .login-legal-link i { font-size: .82rem; }
+
     /* ── Right panel (dark hero) ── */
     .login-panel-right {
       position: relative; overflow: hidden;
@@ -471,6 +494,14 @@ unset($_SESSION['success'], $_SESSION['error']);
 
         <div class="login-foot-note">
           For registered PowerCabs corporate clients and fleet partners.
+        </div>
+        <div class="login-legal-row">
+          <a href="https://powercabs.ie/terms-conditions" target="_blank" rel="noopener"
+             class="login-legal-link">
+            <i class="bi bi-file-earmark-text"></i>
+            Terms &amp; Conditions
+            <i class="bi bi-arrow-up-right" style="font-size:.6rem"></i>
+          </a>
         </div>
 
       </div>

@@ -186,6 +186,7 @@ html, body {
 .badge-completed  { background: #dcfce7; color: #16a34a; }
 .badge-inprogress { background: #fef3c7; color: #d97706; }
 .badge-pending    { background: #dbeafe; color: #2563eb; }
+.badge-scheduled  { background: #f5f3ff; color: #7c3aed; }
 .badge-cancelled  { background: #fee2e2; color: #dc2626; }
 
 /* ── DataTables overrides ── */
