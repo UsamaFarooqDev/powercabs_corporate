@@ -26,7 +26,13 @@ unset($_SESSION['error'], $_SESSION['success']);
   <link href="global.css" rel="stylesheet"/>
 
   <style>
-    :root {
+    /* :root {
+      --orange:    #f37a20;
+      --orange-dk: #e06910;
+      --dark:      #0f1117;
+    } */
+
+        :root {
       --orange:    #f37a20;
       --orange-dk: #e06910;
       --dark:      #0f1117;
