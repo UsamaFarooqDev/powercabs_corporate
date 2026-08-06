@@ -11,9 +11,11 @@ $pageTitle = 'Airport Meet & Greet';
 
 $employees = [];
 $rideTypes = [];
+$billing   = ['billing_model' => 'regular', 'revenue_fixed_fee' => 0.0];
 try {
   $supabase  = new SupabaseClient(true);
   $employees = $supabase->select('corporate_employees', ['cid' => $cid], 'id,name,email,department,phone', 'name.asc');
+  $billing   = corporate_billing_config($supabase, $user);
 } catch (Throwable $e) { /* ignore */ }
 
 /**
@@ -1718,6 +1720,27 @@ $airports = [
       return Math.round(rawFare * m * 1.10 * 100) / 100;
     }
 
+    // Revenue-model accounts add a flat per-ride fee on top of the metered fare.
+    const PC_BILLING = <?= json_encode([
+      'model'    => $billing['billing_model'],
+      'fixedFee' => $billing['revenue_fixed_fee'],
+    ]) ?>;
+
+    function revenueFixedFee() {
+      if (String(PC_BILLING.model || '').toLowerCase() !== 'revenue') return 0;
+      const fee = parseFloat(PC_BILLING.fixedFee);
+      return Number.isFinite(fee) && fee > 0 ? fee : 0;
+    }
+
+    /**
+     * What the company is actually quoted. The fee is flat, so it is added
+     * after both the ride-type multiplier and the Meet & Greet premium.
+     */
+    function quotedFare(distanceKm, durationMin, pickupTimeStr, rideType) {
+      const metered = calculateFareWithPremium(distanceKm, durationMin, pickupTimeStr, rideType);
+      return Math.round((metered + revenueFixedFee()) * 100) / 100;
+    }
+
     function renderFareEmpty() {
       farePanel.classList.add('is-empty');
       fareDistance.textContent = '—';
@@ -1734,7 +1757,7 @@ $airports = [
         renderFareEmpty();
         return;
       }
-      const fare = calculateFareWithPremium(
+      const fare = quotedFare(
         currentDistanceKm,
         currentDurationMin,
         flightTime.value,
@@ -1833,7 +1856,7 @@ $airports = [
       const ap     = getAirport();
       const apc    = getAirportCoords();
       const isArr  = getServiceType() === 'Arrival';
-      const fare   = calculateFareWithPremium(currentDistanceKm, currentDurationMin, flightTime.value, carTypeHidden.value || 'Economy');
+      const fare   = quotedFare(currentDistanceKm, currentDurationMin, flightTime.value, carTypeHidden.value || 'Economy');
 
       const pickup       = isArr ? (apc?.addr || ap.name) : addressInput.value.trim();
       const dropoff      = isArr ? addressInput.value.trim() : (apc?.addr || ap.name);

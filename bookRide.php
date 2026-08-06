@@ -11,9 +11,13 @@ $cname     = $user['name'] ?? '';
 $pageTitle = 'Book a Ride';
 $employees = [];
 $rideTypes = [];
+$billing     = ['billing_model' => 'regular', 'revenue_fixed_fee' => 0.0, 'revenue_tiers' => []];
+$creditInfo  = ['is_revenue' => false, 'balance' => 0.0, 'credits_earned' => 0.0, 'credits_used' => 0.0, 'month_label' => '', 'reset_date' => ''];
 try {
-  $supabase  = new SupabaseClient(true);
-  $employees = $supabase->select('corporate_employees', ['cid' => $cid], 'id,name', 'name.asc');
+  $supabase   = new SupabaseClient(true);
+  $employees  = $supabase->select('corporate_employees', ['cid' => $cid], 'id,name', 'name.asc');
+  $billing    = corporate_billing_config($supabase, $user);
+  $creditInfo = compute_credit_balance($supabase, $user, $billing);
 } catch (Throwable $e) {
   $employees = [];
 }
@@ -497,7 +501,28 @@ $defaultRideType = $rideTypes[0]['value'] ?? 'Economy';
                 <select class="form-select" name="paymentSource" id="paymentSource">
                   <option value="Cash">Cash</option>
                   <option value="Bill to company">Bill to company</option>
+                  <?php if ($creditInfo['is_revenue'] && $creditInfo['balance'] > 0): ?>
+                  <option value="corporate_credit" id="creditPaymentOption">
+                    Use Credits (€<?= number_format($creditInfo['balance'], 2) ?> available)
+                  </option>
+                  <?php endif; ?>
                 </select>
+                <?php if ($creditInfo['is_revenue']): ?>
+                <div id="creditBalanceHint" style="margin-top:8px;padding:10px 14px;border-radius:8px;font-size:12.5px;<?= $creditInfo['balance'] > 0 ? 'background:#f0fdf4;border:1px solid #86efac;color:#166534' : 'background:#fafafa;border:1px solid #e5e7eb;color:#6b7280' ?>">
+                  <i class="bi bi-gift-fill me-1" style="color:<?= $creditInfo['balance'] > 0 ? '#16a34a' : '#9ca3af' ?>"></i>
+                  <?php if ($creditInfo['balance'] > 0): ?>
+                    <strong>€<?= number_format($creditInfo['balance'], 2) ?></strong> credits available — resets <?= htmlspecialchars($creditInfo['reset_date']) ?>
+                  <?php else: ?>
+                    No credits available this month yet
+                    <?php if ($creditInfo['credits_earned'] > 0): ?>
+                      (€<?= number_format($creditInfo['credits_earned'], 2) ?> earned, €<?= number_format($creditInfo['credits_used'], 2) ?> used)
+                    <?php endif; ?>
+                  <?php endif; ?>
+                </div>
+                <div id="creditInsufficientHint" style="display:none;margin-top:6px;padding:8px 12px;border-radius:8px;font-size:12px;background:#fef2f2;border:1px solid #fca5a5;color:#dc2626">
+                  <i class="bi bi-exclamation-circle me-1"></i>Insufficient credits for this ride — please choose another payment method.
+                </div>
+                <?php endif; ?>
               </div>
 
               <div class="alert d-none mt-4 mb-0" id="rideSummaryBar">
@@ -562,6 +587,18 @@ $defaultRideType = $rideTypes[0]['value'] ?? 'Economy';
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    window.PC_BILLING = <?= json_encode([
+      'model'         => $billing['billing_model'],
+      'fixedFee'      => $billing['revenue_fixed_fee'],
+      'creditBalance' => $creditInfo['balance'],
+      'creditsEarned' => $creditInfo['credits_earned'],
+      'creditsUsed'   => $creditInfo['credits_used'],
+      'monthLabel'    => $creditInfo['month_label'],
+      'resetDate'     => $creditInfo['reset_date'],
+      'isRevenue'     => $creditInfo['is_revenue'],
+    ]) ?>;
+  </script>
   <script src="js/bookride.js"></script>
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB9ea0A-mjnD5iHfT9X8Dn5YYH4_KZopLI&libraries=places&callback=initBookRideGoogleMaps" async defer></script>
 

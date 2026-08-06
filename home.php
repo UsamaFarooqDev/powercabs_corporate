@@ -39,6 +39,8 @@ function isCorporateSource(array $row): bool {
   return $source === 'corporate' || $source === 'corporate meet_and_greet';
 }
 
+$creditInfo = ['is_revenue' => false, 'balance' => 0.0, 'credits_earned' => 0.0, 'credits_used' => 0.0, 'month_label' => '', 'reset_date' => ''];
+
 try {
   $supabase = new SupabaseClient(true);
   $rows     = $supabase->select('rides', ['cid' => $cid], '*', 'created_at.desc', 100);
@@ -53,13 +55,17 @@ try {
     $empRows   = $supabase->select('corporate_employees', ['cid' => $cid], '*');
     $employees = count($empRows);
   } catch (Throwable $empErr) {
-    // silently ignore
     $employees = 0;
+  }
+  try {
+    $billing    = corporate_billing_config($supabase, $user);
+    $creditInfo = compute_credit_balance($supabase, $user, $billing);
+  } catch (Throwable $creditErr) {
+    // silently ignore — credit balance is non-critical
   }
 } catch (Throwable $e) {
   $rides = [];
   $ridesFetchError = $e->getMessage();
-  // silently ignore
 }
 ?>
 <!DOCTYPE html>
@@ -150,6 +156,45 @@ try {
         </div>
       </div>
       <?php endforeach; ?>
+
+      <?php if ($creditInfo['is_revenue']): ?>
+      <div class="col-12">
+        <div class="card border-0 shadow-sm" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-left:4px solid #16a34a!important">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+              <div class="d-flex align-items-center gap-3">
+                <div style="width:44px;height:44px;border-radius:12px;background:#16a34a;display:flex;align-items:center;justify-content:center">
+                  <i class="bi bi-gift-fill" style="color:#fff;font-size:1.25rem"></i>
+                </div>
+                <div>
+                  <div style="font-size:11px;font-weight:600;color:#15803d;text-transform:uppercase;letter-spacing:.06em">Loyalty Credits — <?= htmlspecialchars($creditInfo['month_label']) ?></div>
+                  <div style="font-size:1.4rem;font-weight:800;color:#15803d;line-height:1.1">€<?= number_format($creditInfo['balance'], 2) ?> available</div>
+                </div>
+              </div>
+              <div class="d-flex gap-4 flex-wrap">
+                <div style="text-align:center">
+                  <div style="font-size:11px;color:#166534">Earned this month</div>
+                  <div style="font-size:1rem;font-weight:700;color:#15803d">€<?= number_format($creditInfo['credits_earned'], 2) ?></div>
+                </div>
+                <?php if ($creditInfo['credits_used'] > 0): ?>
+                <div style="text-align:center">
+                  <div style="font-size:11px;color:#166534">Used this month</div>
+                  <div style="font-size:1rem;font-weight:700;color:#dc2626">-€<?= number_format($creditInfo['credits_used'], 2) ?></div>
+                </div>
+                <?php endif; ?>
+                <div style="text-align:center">
+                  <div style="font-size:11px;color:#166534">Resets on</div>
+                  <div style="font-size:.9rem;font-weight:600;color:#15803d"><?= htmlspecialchars($creditInfo['reset_date']) ?></div>
+                </div>
+              </div>
+              <a href="bookRide.php" class="btn btn-sm" style="background:#16a34a;color:#fff;border-radius:8px;padding:8px 18px;font-weight:600;white-space:nowrap">
+                <i class="bi bi-lightning-charge-fill me-1"></i>Use Credits
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <?php endif; ?>
 
     </div>
 

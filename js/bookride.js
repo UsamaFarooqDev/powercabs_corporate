@@ -160,7 +160,7 @@ function calculateDistanceAndFare() {
       currentDurationMin = durationInMin;
       const pickupTimeStr = buildPickupDateTimeForFare();
       const carType = document.getElementById('carType')?.value || 'Economy';
-      const fareAmount = calculateFare(distanceInKm, durationInMin, pickupTimeStr, carType);
+      const fareAmount = quotedFare(distanceInKm, durationInMin, pickupTimeStr, carType);
       pickupLatLng = leg.start_location;
       dropoffLatLng = leg.end_location;
 
@@ -220,23 +220,37 @@ function calculateFare(distanceKm, durationMin, pickupTimeStr, rideType) {
   return Math.round(rawFare * multiplier * 100) / 100;
 }
 
+/**
+ * Flat per-ride fee for accounts on the revenue billing model (0 otherwise).
+ * Supplied by bookRide.php from the company's `corporate` row.
+ */
+function revenueFixedFee() {
+  const cfg = window.PC_BILLING || {};
+  if (String(cfg.model || '').toLowerCase() !== 'revenue') return 0;
+  const fee = parseFloat(cfg.fixedFee);
+  return Number.isFinite(fee) && fee > 0 ? fee : 0;
+}
+
+/**
+ * What the company is actually quoted: metered fare + the revenue-model fixed
+ * fee. The fee is flat, so it is added after the ride-type multiplier.
+ */
+function quotedFare(distanceKm, durationMin, pickupTimeStr, rideType) {
+  const metered = calculateFare(distanceKm, durationMin, pickupTimeStr, rideType);
+  return Math.round((metered + revenueFixedFee()) * 100) / 100;
+}
+
 function recalculateFareForCurrentRoute() {
   if (currentDistanceKm == null || currentDurationMin == null) return;
 
   const pickupTimeStr = document.getElementById('pickupTime')?.value?.trim();
   if (!pickupTimeStr) return;
 
-  const carType = document.getElementById('carType')?.value || 'Economy';
-  const fareAmount = calculateFare(
-    currentDistanceKm,
-    currentDurationMin,
-    pickupTimeStr,
-    carType
-  );
+  const carType    = document.getElementById('carType')?.value || 'Economy';
+  const fareAmount = quotedFare(currentDistanceKm, currentDurationMin, pickupTimeStr, carType);
   const summaryFare = document.getElementById('summaryFare');
-  if (summaryFare) {
-    summaryFare.textContent = fareAmount.toFixed(2);
-  }
+  if (summaryFare) summaryFare.textContent = fareAmount.toFixed(2);
+  updateCreditHints(fareAmount);
 }
 
 // ── Passenger type helpers ──────────────────────────────
@@ -317,12 +331,58 @@ function setupFormListeners() {
     bookRideBtn.addEventListener('click', validateAndSubmitForm);
   }
 
+  // Credit payment — validate live when selection changes
+  const paymentSelect = document.getElementById('paymentSource');
+  paymentSelect?.addEventListener('change', () => {
+    const fare = parseFloat(document.getElementById('summaryFare')?.textContent || '0');
+    updateCreditHints(fare);
+  });
+
   // Schedule for Later — sync card visual state with checkbox
   const scheduleChk  = document.getElementById('scheduleForLater');
   const scheduleCard = document.getElementById('scheduleCard');
   scheduleChk?.addEventListener('change', () => {
     scheduleCard?.classList.toggle('is-checked', scheduleChk.checked);
   });
+}
+
+// ==== CREDIT BALANCE ====
+
+function creditBalance() {
+  return parseFloat(window.PC_BILLING?.creditBalance || 0);
+}
+
+function updateCreditHints(fareAmount) {
+  const paymentSelect = document.getElementById('paymentSource');
+  const insufficientHint = document.getElementById('creditInsufficientHint');
+  if (!paymentSelect) return;
+
+  const creditOpt = paymentSelect.querySelector('option[value="corporate_credit"]');
+  if (!creditOpt) return;
+
+  const balance = creditBalance();
+  const fare    = parseFloat(fareAmount) || 0;
+
+  if (fare > 0 && balance < fare) {
+    // Not enough credits — disable option and show warning when selected
+    creditOpt.disabled = true;
+    if (paymentSelect.value === 'corporate_credit') {
+      paymentSelect.value = 'Cash';
+    }
+    if (insufficientHint) insufficientHint.style.display = 'block';
+  } else {
+    creditOpt.disabled = false;
+    if (insufficientHint) insufficientHint.style.display = 'none';
+  }
+
+  // Update the option label with live fare context
+  if (fare > 0) {
+    creditOpt.textContent = balance >= fare
+      ? `Use Credits (€${balance.toFixed(2)} available ✓ covers this ride)`
+      : `Use Credits (€${balance.toFixed(2)} available — need €${fare.toFixed(2)})`;
+  } else {
+    creditOpt.textContent = `Use Credits (€${balance.toFixed(2)} available)`;
+  }
 }
 
 // ==== FORM SUBMISSION ====
@@ -401,6 +461,15 @@ function validateAndSubmitForm() {
   if (!pickup || !dropoff || !pickupTime || !carType || !paymentSource) {
     showToast('Please fill in all required fields.', 'error');
     return;
+  }
+
+  if (paymentSource === 'corporate_credit') {
+    const fare    = parseFloat(fareText) || 0;
+    const balance = creditBalance();
+    if (balance <= 0 || fare > balance) {
+      showToast(`Insufficient credits. You have €${balance.toFixed(2)} but this ride costs €${fare.toFixed(2)}.`, 'error');
+      return;
+    }
   }
   if (isEmployee && (!employee_id || !employee_name)) {
     showToast('Please select an employee.', 'error');
