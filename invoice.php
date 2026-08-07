@@ -1277,14 +1277,19 @@ if (!$logoSvg) { $logoSvg = ''; }
 
     function fmtMoney(n) { return '€' + (Number(n) || 0).toFixed(2); }
     function pad(n) { return n < 10 ? '0' + n : '' + n; }
+    // Deliberately parses the literal digits rather than `new Date(raw)` — enroute_at
+    // is timestamptz, so Supabase returns it with a UTC offset that Date() would
+    // convert to the *browser's* local time, shifting it away from the wall-clock
+    // time actually picked. See js/realtime-rides.js formatPickupDateTime for the twin.
     function fmtDate(raw) {
       if (!raw) return '';
-      const d = new Date(String(raw).replace(' ', 'T'));
-      if (isNaN(d.getTime())) return String(raw);
-      let h = d.getHours();
+      const m = String(raw).match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+      if (!m) return String(raw);
+      const [, y, mo, da, hh, mi] = m;
+      let h = parseInt(hh, 10);
       const ampm = h >= 12 ? 'PM' : 'AM';
       h = h % 12 || 12;
-      return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${String(d.getFullYear()).slice(-2)} ${pad(h)}:${pad(d.getMinutes())} ${ampm}`;
+      return `${da}-${mo}-${y.slice(-2)} ${pad(h)}:${mi} ${ampm}`;
     }
     function fmtDateOnly(d) {
       return `${pad(d.getDate())} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]} ${d.getFullYear()}`;

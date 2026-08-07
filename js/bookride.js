@@ -56,6 +56,10 @@ function formatDateTimeLocalValue(d) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// 'now' (Book Now — dispatch immediately, current time used at submit) or
+// 'schedule' (Schedule for Later — the #pickupTime field drives it).
+let bookingMode = 'now';
+
 function setDefaultPickupTime() {
   const now = new Date();
   now.setMinutes(now.getMinutes() + 30);
@@ -65,13 +69,17 @@ function setDefaultPickupTime() {
 }
 
 /**
- * Same rules as pw_dispatcher/order.php buildPickupDateTime (fare tier uses getHours() on this string).
+ * Pickup time used for the live fare estimate (day/night rate tier). In 'now'
+ * mode this is always the current moment, fetched fresh — never a stale
+ * pre-filled value. In 'schedule' mode it's whatever the corporate user has
+ * picked in #pickupTime so far.
  */
 function buildPickupDateTimeForFare() {
-  const v = document.getElementById('pickupTime')?.value?.trim();
-  if (v) return v;
-  const now = new Date();
-  return now.toISOString().slice(0, 16);
+  if (bookingMode === 'schedule') {
+    const v = document.getElementById('pickupTime')?.value?.trim();
+    if (v) return v;
+  }
+  return formatDateTimeLocalValue(new Date());
 }
 
 function initMap() {
@@ -136,9 +144,12 @@ function calculateDistanceAndFare() {
 
   const pickup = document.getElementById('pickup')?.value;
   const dropoff = document.getElementById('dropoff')?.value;
-  const pickupTime = document.getElementById('pickupTime')?.value;
+  // In 'schedule' mode the fare tier depends on the picked date/time, so wait
+  // for it. In 'now' mode buildPickupDateTimeForFare() always has a value
+  // (the current moment), so there's nothing to wait for.
+  const scheduleTimeMissing = bookingMode === 'schedule' && !document.getElementById('pickupTime')?.value?.trim();
 
-  if (!pickup || !dropoff || !pickupTime?.trim()) {
+  if (!pickup || !dropoff || scheduleTimeMissing) {
     currentDistanceKm = null;
     currentDurationMin = null;
     return;
@@ -242,9 +253,9 @@ function quotedFare(distanceKm, durationMin, pickupTimeStr, rideType) {
 
 function recalculateFareForCurrentRoute() {
   if (currentDistanceKm == null || currentDurationMin == null) return;
+  if (bookingMode === 'schedule' && !document.getElementById('pickupTime')?.value?.trim()) return;
 
-  const pickupTimeStr = document.getElementById('pickupTime')?.value?.trim();
-  if (!pickupTimeStr) return;
+  const pickupTimeStr = buildPickupDateTimeForFare();
 
   const carType    = document.getElementById('carType')?.value || 'Economy';
   const fareAmount = quotedFare(currentDistanceKm, currentDurationMin, pickupTimeStr, carType);
@@ -272,7 +283,6 @@ function setupFormListeners() {
   const pickupTimeInput = document.getElementById('pickupTime');
   const carTypeSelect = document.getElementById('carType');
   const employeeSelect = document.getElementById('employee');
-  const bookRideBtn = document.getElementById('bookRideBtn');
   const rideTypeGrid = document.getElementById('rideTypeGrid');
   const passengerTypeGrid = document.getElementById('passengerTypeGrid');
 
@@ -327,9 +337,22 @@ function setupFormListeners() {
     });
   }
 
-  if (bookRideBtn) {
-    bookRideBtn.addEventListener('click', validateAndSubmitForm);
-  }
+  // ── Book Now / Schedule for Later ───────────────────────
+  const bookNowBtn      = document.getElementById('bookNowBtn');
+  const scheduleLaterBtn = document.getElementById('scheduleLaterBtn');
+
+  bookNowBtn?.addEventListener('click', () => {
+    if (bookingMode === 'schedule') collapseScheduleFields();
+    validateAndSubmitForm('pending');
+  });
+
+  scheduleLaterBtn?.addEventListener('click', () => {
+    if (bookingMode !== 'schedule') {
+      revealScheduleFields();
+      return;
+    }
+    validateAndSubmitForm('scheduled');
+  });
 
   // Credit payment — validate live when selection changes
   const paymentSelect = document.getElementById('paymentSource');
@@ -337,13 +360,39 @@ function setupFormListeners() {
     const fare = parseFloat(document.getElementById('summaryFare')?.textContent || '0');
     updateCreditHints(fare);
   });
+}
 
-  // Schedule for Later — sync card visual state with checkbox
-  const scheduleChk  = document.getElementById('scheduleForLater');
-  const scheduleCard = document.getElementById('scheduleCard');
-  scheduleChk?.addEventListener('change', () => {
-    scheduleCard?.classList.toggle('is-checked', scheduleChk.checked);
-  });
+/** Reveals the pickup date/time picker and turns scheduleLaterBtn into the confirm action. */
+function revealScheduleFields() {
+  bookingMode = 'schedule';
+  const row    = document.getElementById('scheduleDateTimeRow');
+  const hint   = document.getElementById('scheduleDateTimeHint');
+  const divider = document.getElementById('scheduleDateTimeDivider');
+  const label  = document.getElementById('scheduleLaterBtnLabel');
+  const btn    = document.getElementById('scheduleLaterBtn');
+  if (row) row.style.display = '';
+  if (hint) hint.style.display = '';
+  if (divider) divider.style.display = '';
+  if (label) label.textContent = 'Confirm Schedule';
+  btn?.classList.add('is-active');
+  document.getElementById('pickupTime')?.focus();
+  calculateDistanceAndFare();
+}
+
+/** Reverts to Book Now mode — hides the picker and restores the button label. */
+function collapseScheduleFields() {
+  bookingMode = 'now';
+  const row    = document.getElementById('scheduleDateTimeRow');
+  const hint   = document.getElementById('scheduleDateTimeHint');
+  const divider = document.getElementById('scheduleDateTimeDivider');
+  const label  = document.getElementById('scheduleLaterBtnLabel');
+  const btn    = document.getElementById('scheduleLaterBtn');
+  if (row) row.style.display = 'none';
+  if (hint) hint.style.display = 'none';
+  if (divider) divider.style.display = 'none';
+  if (label) label.textContent = 'Schedule for Later';
+  btn?.classList.remove('is-active');
+  calculateDistanceAndFare();
 }
 
 // ==== CREDIT BALANCE ====
@@ -387,17 +436,20 @@ function updateCreditHints(fareAmount) {
 
 // ==== FORM SUBMISSION ====
 
-function setBookBtnLoading(isLoading) {
-  const btn = document.getElementById('bookRideBtn');
-  if (!btn) return;
+function setBookBtnLoading(isLoading, status) {
+  const activeId = status === 'scheduled' ? 'scheduleLaterBtn' : 'bookNowBtn';
+  const activeBtn = document.getElementById(activeId);
+  const otherBtn  = document.getElementById(activeId === 'bookNowBtn' ? 'scheduleLaterBtn' : 'bookNowBtn');
+  if (otherBtn) otherBtn.disabled = isLoading;
+  if (!activeBtn) return;
   if (isLoading) {
-    btn.disabled = true;
-    btn.dataset.originalHtml = btn.innerHTML;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Booking ride…';
+    activeBtn.disabled = true;
+    activeBtn.dataset.originalHtml = activeBtn.innerHTML;
+    activeBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Booking ride…';
   } else {
-    btn.disabled = false;
-    if (btn.dataset.originalHtml) {
-      btn.innerHTML = btn.dataset.originalHtml;
+    activeBtn.disabled = false;
+    if (activeBtn.dataset.originalHtml) {
+      activeBtn.innerHTML = activeBtn.dataset.originalHtml;
     }
   }
 }
@@ -430,16 +482,18 @@ function resetRideForm() {
     const el = document.getElementById(id);
     if (el) el.textContent = '0';
   });
-  // Uncheck schedule toggle and reset card visual
-  const scheduleChk  = document.getElementById('scheduleForLater');
-  const scheduleCard = document.getElementById('scheduleCard');
-  if (scheduleChk) scheduleChk.checked = false;
-  if (scheduleCard) scheduleCard.classList.remove('is-checked');
+  // Back to Book Now mode, fresh default time ready for next time Schedule is opened
+  collapseScheduleFields();
+  setDefaultPickupTime();
   // Clear autocomplete session route state if used
   window.__rideRouteCache = null;
 }
 
-function validateAndSubmitForm() {
+/**
+ * @param {'pending'|'scheduled'} status 'pending' = Book Now (dispatch immediately,
+ *   current time), 'scheduled' = Schedule for Later (uses #pickupTime).
+ */
+function validateAndSubmitForm(status) {
   const passengerType = getPassengerType();
   const isEmployee = passengerType === 'employee' || passengerType === 'both';
   const isGuest    = passengerType === 'guest'    || passengerType === 'both';
@@ -450,7 +504,6 @@ function validateAndSubmitForm() {
   const guestPhone    = document.getElementById('guestPhone')?.value?.trim() || '';
   const pickup        = document.getElementById('pickup')?.value;
   const dropoff       = document.getElementById('dropoff')?.value;
-  const pickupTime    = document.getElementById('pickupTime')?.value;
   const carType       = document.getElementById('carType')?.value;
   const paymentSource = document.getElementById('paymentSource')?.value;
 
@@ -458,9 +511,26 @@ function validateAndSubmitForm() {
   const durationText = document.getElementById('summaryDuration')?.textContent || '';
   const fareText     = document.getElementById('summaryFare')?.textContent     || '';
 
-  if (!pickup || !dropoff || !pickupTime || !carType || !paymentSource) {
+  if (!pickup || !dropoff || !carType || !paymentSource) {
     showToast('Please fill in all required fields.', 'error');
     return;
+  }
+
+  // Book Now always uses the actual current moment, fetched fresh right here —
+  // never a stale pre-filled value. Schedule Later requires a picked, future time.
+  let pickupTime;
+  if (status === 'scheduled') {
+    pickupTime = document.getElementById('pickupTime')?.value;
+    if (!pickupTime) {
+      showToast('Please pick a date and time to schedule this ride.', 'error');
+      return;
+    }
+    if (new Date(pickupTime) <= new Date()) {
+      showToast('Scheduled time must be in the future.', 'error');
+      return;
+    }
+  } else {
+    pickupTime = formatDateTimeLocalValue(new Date());
   }
 
   if (paymentSource === 'corporate_credit') {
@@ -484,8 +554,6 @@ function validateAndSubmitForm() {
   const effectiveEmpName = isEmployee ? employee_name : guestName;
   const effectiveEmpId   = isEmployee ? employee_id   : '';
 
-  const scheduleForLater = document.getElementById('scheduleForLater')?.checked;
-
   const rideData = {
     passenger_type: passengerType,
     employee_id:    effectiveEmpId,
@@ -500,10 +568,14 @@ function validateAndSubmitForm() {
     distance: parseFloat(distanceText) || 0,
     eta:      parseInt(durationText)   || 0,
     fare:     parseFloat(fareText)     || 0,
-    status:   scheduleForLater ? 'scheduled' : 'pending',
+    status,
+    pickup_lat: pickupLatLng  ? pickupLatLng.lat()  : null,
+    pickup_lng: pickupLatLng  ? pickupLatLng.lng()  : null,
+    dest_lat:   dropoffLatLng ? dropoffLatLng.lat() : null,
+    dest_lng:   dropoffLatLng ? dropoffLatLng.lng() : null,
   };
 
-  setBookBtnLoading(true);
+  setBookBtnLoading(true, status);
 
   fetch(new URL('php/save_ride.php', window.location.href).href, {
     method: 'POST',
@@ -513,7 +585,7 @@ function validateAndSubmitForm() {
   })
     .then(response => response.json())
     .then(data => {
-      setBookBtnLoading(false);
+      setBookBtnLoading(false, status);
       if (data.success) {
         notifyDashboardAndRideHistoryUpdated();
         const successModal = new bootstrap.Modal(document.getElementById('successModal'));
@@ -523,7 +595,7 @@ function validateAndSubmitForm() {
       }
     })
     .catch(() => {
-      setBookBtnLoading(false);
+      setBookBtnLoading(false, status);
       showToast('Failed to save ride. Please try again.', 'error');
     });
 }

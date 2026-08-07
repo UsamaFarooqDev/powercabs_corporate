@@ -15,7 +15,7 @@ $currentPage = $pageTitle ?? '';
 
 <div class="d-flex flex-column h-100 px-1 py-3">
 
-  <div class="d-flex justify-content-center align-items-center mb-4 px-1" style="height:48px; width:100%">
+  <div class="d-flex justify-content-center align-items-center mb-4 px-1" style="height:26px; width:80%">
     <img
       src="assets/powercabs-logo.svg"
       alt="Navigation Logo"

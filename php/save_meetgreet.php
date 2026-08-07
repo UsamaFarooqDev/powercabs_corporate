@@ -47,7 +47,7 @@ if ($isGuest && $guestName === '') {
     exit;
 }
 
-$pickupTimeIso = date('Y-m-d H:i:s', strtotime((string)$data['flight_time']));
+$pickupTimeIso = corporate_pickup_time_to_utc((string)$data['flight_time']);
 $serviceType   = (string)($data['service_type'] ?? 'Arrival');
 $paidVia       = trim((string)($data['paid_via'] ?? 'stripe'));
 $paymentMethod = ($paidVia === 'company') ? 'Bill to company' : 'stripe';
@@ -104,6 +104,28 @@ $insertPayload = [
 // Keep only business-identity compatibility fields, avoid duplicate ride metrics.
 $effectiveEmpName = $isEmployee ? (string)($data['employee_name'] ?? '') : $guestName;
 $effectiveEmpId   = $isEmployee ? (string)($data['employee_id']   ?? '') : '';
+
+// Resolve rides.user_id for employee-linked bookings (best-effort — never blocks
+// the booking). Guest-only bookings stay null, same as before.
+$supabase   = new SupabaseClient(true);
+$corpUserId = null;
+if ($isEmployee && $effectiveEmpId !== '') {
+    try {
+        $empRows = $supabase->select('corporate_employees', ['id' => $effectiveEmpId, 'cid' => $cid], 'id,name,email,phone', null, 1);
+        if (!empty($empRows) && is_array($empRows[0])) {
+            $corpUserId = corporate_resolve_passenger_user_id(
+                $supabase,
+                $effectiveEmpId,
+                (string)($empRows[0]['name'] ?? $effectiveEmpName),
+                (string)($empRows[0]['email'] ?? ''),
+                (string)($empRows[0]['phone'] ?? '')
+            );
+        }
+    } catch (Throwable $e) {
+        $corpUserId = null;
+    }
+}
+
 $optionalLegacy = [
     'company'        => $companyName,
     'employee'       => $effectiveEmpName,
@@ -133,11 +155,20 @@ $optional = [
     'terminal'         => $terminal,
     'meeting_point'    => $terminal,
     'terminal_name'    => $terminal,
-    // Geo coords from the Google route — saved when a column exists.
+    // Geo coords from the Google route — saved when a column exists. The rides
+    // table's columns are pickup_lat/pickup_lng/dest_lat/dest_lng (no separate
+    // dropoff_* columns); the payload field is still named dropoff_lat/lng
+    // client-side, so map it onto dest_lat/dest_lng here.
     'pickup_lat'       => isset($data['pickup_lat'])  ? floatval($data['pickup_lat'])  : null,
     'pickup_lng'       => isset($data['pickup_lng'])  ? floatval($data['pickup_lng'])  : null,
-    'dropoff_lat'      => isset($data['dropoff_lat']) ? floatval($data['dropoff_lat']) : null,
-    'dropoff_lng'      => isset($data['dropoff_lng']) ? floatval($data['dropoff_lng']) : null,
+    'dest_lat'         => isset($data['dropoff_lat']) ? floatval($data['dropoff_lat']) : null,
+    'dest_lng'         => isset($data['dropoff_lng']) ? floatval($data['dropoff_lng']) : null,
+    'user_id'          => $corpUserId,
+    // M&G bookings are always Scheduled. pw_dispatcher/preorder.php (its own
+    // pre-book queue view) reads scheduled_at/is_scheduled, not enroute_at —
+    // without these it shows "Not set" even though enroute_at is correct.
+    'scheduled_at'     => $pickupTimeIso,
+    'is_scheduled'     => true,
 ];
 foreach ($optional as $k => $v) {
     if ($v !== null && $v !== '') {
@@ -146,7 +177,7 @@ foreach ($optional as $k => $v) {
 }
 
 try {
-    $supabase = new SupabaseClient(true);
+    // $supabase was already constructed above to resolve rides.user_id.
     $inserted = false;
     $lastInsertError = null;
 

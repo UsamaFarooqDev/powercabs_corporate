@@ -92,7 +92,7 @@ try {
       border: 1px solid #eeeff2;
       transition: box-shadow .15s ease, transform .15s ease;
     }
-    .stat-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.07) !important; transform: translateY(-1px); }
+    .stat-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.07) !important; }
     .stat-card .card-body { padding: 1.35rem 1.25rem !important; }
 
     .stat-icon {

@@ -260,6 +260,22 @@ $defaultRideType = $rideTypes[0]['value'] ?? 'Economy';
     }
     .btn-book:hover { background: #e06910; color: #fff; box-shadow: 0 4px 14px rgba(243,122,32,.35); }
 
+    .btn-book-outline {
+      background: #fff;
+      color: #f37a20;
+      border: 1.5px solid #f37a20;
+      border-radius: 8px;
+      font-size: var(--fs-btn);
+      font-weight: 600;
+      padding: .46rem 1.1rem;
+      transition: background .15s, color .15s, box-shadow .15s;
+    }
+    .btn-book-outline:hover { background: #fff7f0; }
+    .btn-book-outline.is-active {
+      background: #fff7f0;
+      box-shadow: 0 0 0 2px rgba(243,122,32,.12);
+    }
+
     .btn-past {
       font-size: var(--fs-small);
       font-weight: 600;
@@ -336,39 +352,6 @@ $defaultRideType = $rideTypes[0]['value'] ?? 'Economy';
     .br-pax-card.is-selected .br-pax-icon { color: #f37a20; }
     .br-pax-name { font-size: 12px; font-weight: 600; color: #374151; }
 
-    /* ── Schedule for Later card ── */
-    .br-schedule-card {
-      display: flex; align-items: center; gap: 10px;
-      margin-top: 10px;
-      padding: 10px 12px;
-      border: 1.5px solid #e5e7eb;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: border-color .15s, background .15s;
-      user-select: none;
-    }
-    .br-schedule-card:hover { border-color: #f3b88e; background: #fffbf7; }
-    .br-schedule-card.is-checked { border-color: #f37a20; background: #fff7f0; }
-    .br-schedule-card input[type="checkbox"] { position: absolute; opacity: 0; pointer-events: none; }
-
-    .br-schedule-tick {
-      width: 18px; height: 18px; flex-shrink: 0;
-      border: 1.5px solid #d1d5db; border-radius: 5px;
-      display: flex; align-items: center; justify-content: center;
-      background: #fff; color: transparent;
-      transition: border-color .15s, background .15s, color .15s;
-      font-size: .7rem; line-height: 1;
-    }
-    .br-schedule-card.is-checked .br-schedule-tick {
-      border-color: #f37a20; background: #f37a20; color: #fff;
-    }
-
-    .br-schedule-text { flex: 1; min-width: 0; }
-    .br-schedule-title { display: block; font-size: 13px; font-weight: 600; color: #374151; line-height: 1.3; }
-    .br-schedule-hint  { display: block; font-size: 11px; color: #9ca3af; margin-top: 1px; }
-
-    .br-schedule-icon { font-size: .95rem; color: #9ca3af; flex-shrink: 0; transition: color .15s; }
-    .br-schedule-card.is-checked .br-schedule-icon { color: #f37a20; }
   </style>
 </head>
 <body>
@@ -479,22 +462,15 @@ $defaultRideType = $rideTypes[0]['value'] ?? 'Economy';
 
               <hr class="br-divider">
 
-              <div class="br-field mb-0">
-                <label class="br-label" for="pickupTime">Date &amp; Time</label>
+              <div class="br-field mb-0" id="scheduleDateTimeRow" style="display:none">
+                <label class="br-label" for="pickupTime">Pickup Date &amp; Time</label>
                 <input type="datetime-local" class="form-control" name="pickupTime" id="pickupTime"/>
               </div>
+              <div id="scheduleDateTimeHint" style="display:none;font-size:12px;color:#9ca3af;margin:-2px 0 0 138px;">
+                Pick a future date &amp; time, then confirm below.
+              </div>
 
-              <label class="br-schedule-card" for="scheduleForLater" id="scheduleCard">
-                <input type="checkbox" id="scheduleForLater"/>
-                <span class="br-schedule-tick"><i class="bi bi-check2"></i></span>
-                <span class="br-schedule-text">
-                  <span class="br-schedule-title">Schedule for later</span>
-                  <span class="br-schedule-hint">Saves as Scheduled — not dispatched immediately</span>
-                </span>
-                <i class="bi bi-calendar-check br-schedule-icon"></i>
-              </label>
-
-              <hr class="br-divider">
+              <hr class="br-divider" id="scheduleDateTimeDivider" style="display:none">
 
               <div class="br-field mb-0">
                 <label class="br-label" for="paymentSource">Payment</label>
@@ -533,13 +509,18 @@ $defaultRideType = $rideTypes[0]['value'] ?? 'Economy';
                 </div>
               </div>
 
-              <div class="d-flex justify-content-between align-items-center mt-4">
+              <div class="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-2">
                 <a href="home.php" class="btn-past">
                   <i class="bi bi-clock-history me-1"></i>View Past Rides
                 </a>
-                <button type="button" class="btn-book" id="bookRideBtn">
-                  <span class="btn-label">Book Ride <i class="bi bi-chevron-right ms-1" style="font-size:.75rem;"></i></span>
-                </button>
+                <div class="d-flex gap-2">
+                  <button type="button" class="btn-book-outline" id="scheduleLaterBtn">
+                    <i class="bi bi-calendar-check me-1"></i><span id="scheduleLaterBtnLabel">Schedule for Later</span>
+                  </button>
+                  <button type="button" class="btn-book" id="bookNowBtn">
+                    <span class="btn-label"><i class="bi bi-lightning-charge-fill me-1"></i>Book Now</span>
+                  </button>
+                </div>
               </div>
 
             </form>

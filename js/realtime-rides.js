@@ -67,15 +67,17 @@
   }
 
   function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
   function formatPickupDateTime(raw) {
     if (!raw) return '';
-    const d = new Date(String(raw).replace(' ', 'T'));
-    if (isNaN(d.getTime())) return String(raw);
-    const date = `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${String(d.getFullYear()).slice(-2)}`;
-    let h = d.getHours();
+    const m = String(raw).match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+    if (!m) return String(raw);
+    const [, y, mo, da, hh, mi] = m;
+    const date = `${da}-${mo}-${y.slice(-2)}`;
+    let h = parseInt(hh, 10);
     const ampm = h >= 12 ? 'PM' : 'AM';
     h = h % 12 || 12;
-    const time = `${pad(h)}:${pad(d.getMinutes())} ${ampm}`;
+    const time = `${pad(h)}:${mi} ${ampm}`;
     return `<div style="color:#111827;line-height:1.2;">${date}</div>`
          + `<div style="font-size:12px;color:#6b7280;line-height:1.2;margin-top:2px;">${time}</div>`;
   }
