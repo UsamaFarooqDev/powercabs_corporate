@@ -15,7 +15,7 @@ $billing     = ['billing_model' => 'regular', 'revenue_fixed_fee' => 0.0, 'reven
 $creditInfo  = ['is_revenue' => false, 'balance' => 0.0, 'credits_earned' => 0.0, 'credits_used' => 0.0, 'month_label' => '', 'reset_date' => ''];
 try {
   $supabase   = new SupabaseClient(true);
-  $employees  = $supabase->select('corporate_employees', ['cid' => $cid], 'id,name', 'name.asc');
+  $employees  = $supabase->select('corporate_employees', ['cid' => $cid], 'corp_id,name', 'name.asc');
   $billing    = corporate_billing_config($supabase, $user);
   $creditInfo = compute_credit_balance($supabase, $user, $billing);
 } catch (Throwable $e) {
@@ -399,7 +399,7 @@ $defaultRideType = $rideTypes[0]['value'] ?? 'Economy';
                 <select class="form-select" name="employee" id="employee">
                   <option value="" disabled selected>Select employee</option>
                   <?php foreach ($employees as $row): ?>
-                    <option value="<?= htmlspecialchars($row['id'] ?? '') ?>">
+                    <option value="<?= htmlspecialchars($row['corp_id'] ?? '') ?>">
                       <?= htmlspecialchars($row['name'] ?? '') ?>
                     </option>
                   <?php endforeach; ?>

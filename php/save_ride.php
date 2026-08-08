@@ -102,26 +102,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
     $supabase = new SupabaseClient(true);
 
-    // Resolve rides.user_id for employee-linked bookings (best-effort — never
-    // blocks the booking). Guest-only bookings have no corporate_employees row
-    // to resolve from and stay null, same as before.
-    $corpUserId = null;
-    if ($isEmployee && $employee_id !== '') {
-        try {
-            $empRows = $supabase->select('corporate_employees', ['id' => $employee_id, 'cid' => $cid], 'id,name,email,phone', null, 1);
-            if (!empty($empRows) && is_array($empRows[0])) {
-                $corpUserId = corporate_resolve_passenger_user_id(
-                    $supabase,
-                    $employee_id,
-                    (string)($empRows[0]['name'] ?? $employee),
-                    (string)($empRows[0]['email'] ?? ''),
-                    (string)($empRows[0]['phone'] ?? '')
-                );
-            }
-        } catch (Throwable $e) {
-            $corpUserId = null;
-        }
-    }
+    $corpUserId = $isEmployee && $employee_id !== ''
+        ? corporate_resolve_employee_user_id($supabase, $cid, $employee_id)
+        : null;
 
     $insertPayload = [
         // Canonical rides columns (required for the merged model).
@@ -146,15 +129,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'guest_name'     => $guestName,
         'guest_phone'    => $guestPhone,
         'passenger_type' => $passengerType,
-        // Geo coords from the Google route — saved when the column exists.
         'pickup_lat'     => isset($data['pickup_lat']) && $data['pickup_lat'] !== '' ? floatval($data['pickup_lat']) : null,
         'pickup_lng'     => isset($data['pickup_lng']) && $data['pickup_lng'] !== '' ? floatval($data['pickup_lng']) : null,
         'dest_lat'       => isset($data['dest_lat'])   && $data['dest_lat']   !== '' ? floatval($data['dest_lat'])   : null,
         'dest_lng'       => isset($data['dest_lng'])   && $data['dest_lng']   !== '' ? floatval($data['dest_lng'])   : null,
         'user_id'        => $corpUserId,
-        // pw_dispatcher/preorder.php (its own pre-book queue view) reads
-        // scheduled_at/is_scheduled, not enroute_at — without these a Scheduled
-        // corporate ride shows "Not set" there even though enroute_at is correct.
         'scheduled_at'   => $status === 'Scheduled' ? $pickupTimeIso : null,
         'is_scheduled'   => $status === 'Scheduled' ? true : null,
     ];
@@ -174,6 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $col = null;
             if (preg_match("/Could not find the '([^']+)' column/", $msg, $m)) $col = $m[1];
             else if (preg_match('/column "([^"]+)" of relation/i', $msg, $m)) $col = $m[1];
+            else if (preg_match('/Key \(([a-zA-Z_]+)\)=/', $msg, $m)) $col = $m[1];
 
             if ($col !== null && array_key_exists($col, $insertPayload) && in_array($col, $optionalKeys, true)) {
                 unset($insertPayload[$col]);

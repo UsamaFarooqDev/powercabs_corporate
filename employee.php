@@ -13,7 +13,7 @@ $employeesRows = [];
 
 try {
   $supabase    = new SupabaseClient(true);
-  $employees   = $supabase->select('corporate_employees', ['cid' => $cid], '*', 'id.desc');
+  $employees   = $supabase->select('corporate_employees', ['cid' => $cid], '*', 'corp_id.desc');
   $summaryRows = [];
   try {
     $summaryRows = $supabase->select('employee_ride_summary', ['cid' => $cid], '*', null);
@@ -26,7 +26,7 @@ try {
   }
 
   foreach ($employees as $emp) {
-    $eid = $emp['id'] ?? '';
+    $eid = $emp['corp_id'] ?? '';
     $s   = $summaryMap[$eid] ?? [];
     $employeesRows[] = [
       'Employee_id'     => $eid,

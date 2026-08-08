@@ -106,9 +106,6 @@ try {
 
     .stat-label { font-size: var(--fs-label); font-weight: 500; color: #9ca3af; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 4px; }
     .stat-value { font-size: 1.55rem; font-weight: 700; color: #111827; line-height: 1.1; }
-
-
-
     .rides-card { border-radius: 16px; border: 1px solid #eeeff2; }
 
     .rides-search {

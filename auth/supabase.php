@@ -130,40 +130,17 @@ class SupabaseClient {
     }
 }
 
-function corporate_resolve_passenger_user_id(SupabaseClient $supabase, string $employeeId, string $employeeName, string $employeeEmail, string $employeePhone): ?string {
-    $employeeEmail = trim($employeeEmail);
-    if ($employeeId === '' || $employeeEmail === '') return null;
-    $employeeName = trim($employeeName) !== '' ? trim($employeeName) : 'Corporate Employee';
+
+function corporate_resolve_employee_user_id(SupabaseClient $supabase, string $cid, string $corpId): ?string {
+    $corpId = trim($corpId);
+    if ($corpId === '') return null;
 
     try {
-        $existing = $supabase->select('passengers', ['email' => $employeeEmail], 'id', null, 1);
-        if (!empty($existing) && corporate_is_uuid((string)($existing[0]['id'] ?? ''))) {
-            return (string)$existing[0]['id'];
-        }
+        $rows = $supabase->select('corporate_employees', ['corp_id' => $corpId, 'cid' => $cid], 'id', null, 1);
+        $uid = $rows[0]['id'] ?? null;
+        return ($uid !== null && corporate_is_uuid((string)$uid)) ? (string)$uid : null;
     } catch (Throwable $e) {
-        // Lookup failed — fall through and try to create instead.
-    }
-
-    try {
-        $authUserId = corporate_create_auth_user($employeeEmail, $employeeName);
-        if (!corporate_is_uuid((string)$authUserId)) return null;
-
-        $passenger = $supabase->insert('passengers', [
-            'id'                => $authUserId,
-            'name'              => $employeeName,
-            'email'             => $employeeEmail,
-            'phone'             => $employeePhone !== '' ? $employeePhone : null,
-            'is_email_verified' => true,
-            'status'            => 'active',
-            'meta'              => ['source' => 'corporate', 'corp_employee_id' => $employeeId],
-        ]);
-        $newId = is_array($passenger[0] ?? null) ? ($passenger[0]['id'] ?? null) : null;
-        $result = $newId !== null ? (string)$newId : (string)$authUserId;
-        // Belt-and-braces: rides.user_id / passengers.id are uuid columns — never
-        // hand back something that would hard-fail the booking's insert.
-        return corporate_is_uuid($result) ? $result : null;
-    } catch (Throwable $e) {
-        error_log('[corporate_resolve_passenger_user_id] ' . $e->getMessage());
+        error_log('[corporate_resolve_employee_user_id] ' . $e->getMessage());
         return null;
     }
 }
@@ -171,70 +148,6 @@ function corporate_resolve_passenger_user_id(SupabaseClient $supabase, string $e
 /** True if $v looks like a well-formed uuid (any RFC 4122 variant/version). */
 function corporate_is_uuid(string $v): bool {
     return preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', trim($v)) === 1;
-}
-
-function corporate_create_auth_user(string $email, string $name): ?string {
-    $payload = [
-        'email' => $email,
-        'password' => bin2hex(random_bytes(16)),
-        'email_confirm' => true,
-        'user_metadata' => ['full_name' => $name, 'source' => 'corporate'],
-    ];
-    $ch = curl_init(rtrim(SUPABASE_URL, '/') . '/auth/v1/admin/users');
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode($payload),
-        CURLOPT_HTTPHEADER => [
-            'apikey: ' . SUPABASE_SERVICE_ROLE_KEY,
-            'Authorization: Bearer ' . SUPABASE_SERVICE_ROLE_KEY,
-            'Content-Type: application/json',
-        ],
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_SSL_VERIFYHOST => false,
-        CURLOPT_CONNECTTIMEOUT => 5,
-        CURLOPT_TIMEOUT => 12,
-    ]);
-    $body = curl_exec($ch);
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $decoded = json_decode((string)$body, true);
-
-    if ($code === 200 || $code === 201) {
-        return $decoded['id'] ?? null;
-    }
-    $msg = strtolower((string)($decoded['msg'] ?? $decoded['error_description'] ?? $decoded['message'] ?? ''));
-    if ($code === 422 || strpos($msg, 'already') !== false) {
-        return corporate_find_auth_user_id_by_email($email);
-    }
-    error_log('[corporate_create_auth_user] HTTP ' . $code . ': ' . $body);
-    return null;
-}
-
-/** Looks up an existing Supabase Auth user's id by email via the Admin API. */
-function corporate_find_auth_user_id_by_email(string $email): ?string {
-    $ch = curl_init(rtrim(SUPABASE_URL, '/') . '/auth/v1/admin/users?email=' . urlencode($email));
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER => [
-            'apikey: ' . SUPABASE_SERVICE_ROLE_KEY,
-            'Authorization: Bearer ' . SUPABASE_SERVICE_ROLE_KEY,
-        ],
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_SSL_VERIFYHOST => false,
-        CURLOPT_CONNECTTIMEOUT => 5,
-        CURLOPT_TIMEOUT => 12,
-    ]);
-    $body = curl_exec($ch);
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    if ($code !== 200) return null;
-    $decoded = json_decode((string)$body, true);
-    $users = $decoded['users'] ?? (is_array($decoded) ? $decoded : []);
-    foreach ($users as $u) {
-        if (!empty($u['email']) && strcasecmp($u['email'], $email) === 0 && !empty($u['id'])) {
-            return $u['id'];
-        }
-    }
-    return null;
 }
 
 function corporate_pickup_time_to_utc(string $raw): string {

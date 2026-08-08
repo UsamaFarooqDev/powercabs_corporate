@@ -24,9 +24,17 @@ if ($employee_id === '' || $name === '' || $email === '') {
     exit;
 }
 
+$cid = $_SESSION['user']['cid'] ?? '';
+
 try {
     $supabase = new SupabaseClient(true);
-    $supabase->update('corporate_employees', ['id' => $employee_id], [
+    // Confirm this employee belongs to the logged-in company before updating.
+    $existing = $supabase->select('corporate_employees', ['corp_id' => $employee_id, 'cid' => $cid], 'corp_id', null, 1);
+    if (empty($existing)) {
+        echo json_encode(['success' => false, 'message' => 'Employee not found.']);
+        exit;
+    }
+    $supabase->update('corporate_employees', ['corp_id' => $employee_id], [
         'name'       => $name,
         'email'      => $email,
         'phone'      => $contact,

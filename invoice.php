@@ -19,7 +19,7 @@ $company   = [
 
 try {
   $supabase  = new SupabaseClient(true);
-  $employees = $supabase->select('corporate_employees', ['cid' => $cid], '*', 'id.asc');
+  $employees = $supabase->select('corporate_employees', ['cid' => $cid], '*', 'corp_id.asc');
   foreach (corporate_row_filters_try($user) as $filter) {
     $results = $supabase->select('corporate', $filter, '*', null, 1);
     if (!empty($results)) {
@@ -741,7 +741,7 @@ if (!$logoSvg) { $logoSvg = ''; }
               <option value="">— Select an employee —</option>
               <?php foreach ($employees as $emp): ?>
                 <option
-                  value="<?= htmlspecialchars((string)($emp['id'] ?? '')) ?>"
+                  value="<?= htmlspecialchars((string)($emp['corp_id'] ?? '')) ?>"
                   data-name="<?= htmlspecialchars((string)($emp['name']       ?? '')) ?>"
                   data-dept="<?= htmlspecialchars((string)($emp['department'] ?? '')) ?>"
                   data-email="<?= htmlspecialchars((string)($emp['email']     ?? '')) ?>"

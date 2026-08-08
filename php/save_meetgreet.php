@@ -52,9 +52,6 @@ $serviceType   = (string)($data['service_type'] ?? 'Arrival');
 $paidVia       = trim((string)($data['paid_via'] ?? 'stripe'));
 $paymentMethod = ($paidVia === 'company') ? 'Bill to company' : 'stripe';
 
-// Defence-in-depth: only accept terminals from the curated list. Anything
-// else is silently treated as "Driver decides" so the dispatcher never sees
-// arbitrary strings stored as a meeting point.
 $allowedTerminals = [
     'Terminal 1 — Arrivals',
     'Terminal 2 — Arrivals',
@@ -67,8 +64,6 @@ $allowedTerminals = [
 $terminalRaw = trim((string)($data['terminal'] ?? ''));
 $terminal    = in_array($terminalRaw, $allowedTerminals, true) ? $terminalRaw : '';
 
-// Compose a rich M&G notes block so the dispatcher can see the airport/
-// flight context inside the same notes column the regular rides use.
 $notesParts = [];
 $notesParts[] = sprintf('[Meet & Greet · %s]', $serviceType);
 if (!empty($data['airport_name']) || !empty($data['airport_code'])) {
@@ -105,26 +100,10 @@ $insertPayload = [
 $effectiveEmpName = $isEmployee ? (string)($data['employee_name'] ?? '') : $guestName;
 $effectiveEmpId   = $isEmployee ? (string)($data['employee_id']   ?? '') : '';
 
-// Resolve rides.user_id for employee-linked bookings (best-effort — never blocks
-// the booking). Guest-only bookings stay null, same as before.
 $supabase   = new SupabaseClient(true);
-$corpUserId = null;
-if ($isEmployee && $effectiveEmpId !== '') {
-    try {
-        $empRows = $supabase->select('corporate_employees', ['id' => $effectiveEmpId, 'cid' => $cid], 'id,name,email,phone', null, 1);
-        if (!empty($empRows) && is_array($empRows[0])) {
-            $corpUserId = corporate_resolve_passenger_user_id(
-                $supabase,
-                $effectiveEmpId,
-                (string)($empRows[0]['name'] ?? $effectiveEmpName),
-                (string)($empRows[0]['email'] ?? ''),
-                (string)($empRows[0]['phone'] ?? '')
-            );
-        }
-    } catch (Throwable $e) {
-        $corpUserId = null;
-    }
-}
+$corpUserId = $isEmployee && $effectiveEmpId !== ''
+    ? corporate_resolve_employee_user_id($supabase, $cid, $effectiveEmpId)
+    : null;
 
 $optionalLegacy = [
     'company'        => $companyName,
@@ -140,9 +119,6 @@ foreach ($optionalLegacy as $k => $v) {
     }
 }
 
-// Optional fields used to *distinguish* a Meet & Greet booking from a
-// regular ride. If the column doesn't exist on `rides`, the
-// retry loop below silently drops it.
 $optional = [
     'label'            => 'corporate meet_and_greet',
     'booking_label'    => 'corporate meet_and_greet',
@@ -155,18 +131,11 @@ $optional = [
     'terminal'         => $terminal,
     'meeting_point'    => $terminal,
     'terminal_name'    => $terminal,
-    // Geo coords from the Google route — saved when a column exists. The rides
-    // table's columns are pickup_lat/pickup_lng/dest_lat/dest_lng (no separate
-    // dropoff_* columns); the payload field is still named dropoff_lat/lng
-    // client-side, so map it onto dest_lat/dest_lng here.
     'pickup_lat'       => isset($data['pickup_lat'])  ? floatval($data['pickup_lat'])  : null,
     'pickup_lng'       => isset($data['pickup_lng'])  ? floatval($data['pickup_lng'])  : null,
     'dest_lat'         => isset($data['dropoff_lat']) ? floatval($data['dropoff_lat']) : null,
     'dest_lng'         => isset($data['dropoff_lng']) ? floatval($data['dropoff_lng']) : null,
     'user_id'          => $corpUserId,
-    // M&G bookings are always Scheduled. pw_dispatcher/preorder.php (its own
-    // pre-book queue view) reads scheduled_at/is_scheduled, not enroute_at —
-    // without these it shows "Not set" even though enroute_at is correct.
     'scheduled_at'     => $pickupTimeIso,
     'is_scheduled'     => true,
 ];
@@ -177,12 +146,9 @@ foreach ($optional as $k => $v) {
 }
 
 try {
-    // $supabase was already constructed above to resolve rides.user_id.
     $inserted = false;
     $lastInsertError = null;
 
-    // Drop any optional column the schema doesn't have, then retry.
-    // Required canonical rides columns always stay.
     $optionalKeys = array_merge(array_keys($optionalLegacy), array_keys($optional));
     $maxAttempts  = 12;
     while ($maxAttempts-- > 0) {
@@ -194,8 +160,6 @@ try {
             $first = is_array($result[0] ?? null) ? $result[0] : [];
             $newId = $first['id'] ?? ($first['ride_id'] ?? ($first['uuid'] ?? null));
             if ($newId === null || $newId === '') {
-                // Some deployments return a row shape without `id`; resolve the
-                // freshly inserted ride deterministically from key attributes.
                 $lookup = $supabase->select('rides', [
                     'cid' => $cid,
                     'source' => 'corporate meet_and_greet',
@@ -215,10 +179,8 @@ try {
             $col = null;
             if (preg_match("/Could not find the '([^']+)' column/", $msg, $m)) $col = $m[1];
             else if (preg_match("/column \"([^\"]+)\" of relation/i", $msg, $m)) $col = $m[1];
+            else if (preg_match('/Key \(([a-zA-Z_]+)\)=/', $msg, $m)) $col = $m[1];
 
-            // Only drop the column if it's one of our *optional* tags.
-            // Anything else (a NOT NULL on a required column) is a real
-            // problem — surface it.
             if ($col !== null && array_key_exists($col, $insertPayload) && in_array($col, $optionalKeys, true)) {
                 unset($insertPayload[$col]);
                 continue;

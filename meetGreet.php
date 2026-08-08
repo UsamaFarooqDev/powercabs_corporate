@@ -14,7 +14,7 @@ $rideTypes = [];
 $billing   = ['billing_model' => 'regular', 'revenue_fixed_fee' => 0.0];
 try {
   $supabase  = new SupabaseClient(true);
-  $employees = $supabase->select('corporate_employees', ['cid' => $cid], 'id,name,email,department,phone', 'name.asc');
+  $employees = $supabase->select('corporate_employees', ['cid' => $cid], 'corp_id,name,email,department,phone', 'name.asc');
   $billing   = corporate_billing_config($supabase, $user);
 } catch (Throwable $e) { /* ignore */ }
 
@@ -866,7 +866,7 @@ $airports = [
                     <option value="">— Select an employee —</option>
                     <?php foreach ($employees as $emp): ?>
                       <option
-                        value="<?= htmlspecialchars((string)($emp['id'] ?? '')) ?>"
+                        value="<?= htmlspecialchars((string)($emp['corp_id'] ?? '')) ?>"
                         data-name="<?= htmlspecialchars((string)($emp['name'] ?? '')) ?>"
                         data-email="<?= htmlspecialchars((string)($emp['email'] ?? '')) ?>"
                         data-phone="<?= htmlspecialchars((string)($emp['phone'] ?? '')) ?>"

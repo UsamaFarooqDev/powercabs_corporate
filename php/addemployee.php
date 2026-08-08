@@ -29,11 +29,22 @@ if ($name === '' || $email === '' || $contact === '') {
 
 try {
     $supabase = new SupabaseClient(true);
+
+    // Reject duplicate email within the same company (case-insensitive).
+    $existingEmail = $supabase->selectWithOperators('corporate_employees', [
+        'cid'   => 'eq.' . $cid,
+        'email' => 'ilike.' . $email,
+    ], 'corp_id', null, 1);
+    if (!empty($existingEmail)) {
+        echo json_encode(['success' => false, 'message' => 'An employee with this email already exists.']);
+        exit;
+    }
+
     $newID = null;
     $attempts = 0;
     do {
         $newID = preg_replace('/\s+/', '', $companyName) . rand(1000, 9999);
-        $existing = $supabase->select('corporate_employees', ['id' => $newID], 'id', null, 1);
+        $existing = $supabase->select('corporate_employees', ['corp_id' => $newID], 'corp_id', null, 1);
         if (empty($existing)) break;
         $attempts++;
     } while ($attempts < 10);
@@ -44,7 +55,7 @@ try {
     }
 
     $supabase->insert('corporate_employees', [
-        'id'         => $newID,
+        'corp_id'    => $newID,
         'name'       => $name,
         'email'      => $email,
         'phone'      => $contact,

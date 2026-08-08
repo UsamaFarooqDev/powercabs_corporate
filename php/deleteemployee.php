@@ -21,9 +21,17 @@ if ($employee_id === '') {
     exit;
 }
 
+$cid = $_SESSION['user']['cid'] ?? '';
+
 try {
     $supabase = new SupabaseClient(true);
-    $supabase->delete('corporate_employees', ['id' => $employee_id]);
+    // Confirm this employee belongs to the logged-in company before deleting.
+    $existing = $supabase->select('corporate_employees', ['corp_id' => $employee_id, 'cid' => $cid], 'corp_id', null, 1);
+    if (empty($existing)) {
+        echo json_encode(['success' => false, 'message' => 'Employee not found.']);
+        exit;
+    }
+    $supabase->delete('corporate_employees', ['corp_id' => $employee_id]);
     echo json_encode(['success' => true, 'message' => 'Employee removed successfully.']);
 } catch (Throwable $e) {
     echo json_encode(['success' => false, 'message' => 'Error removing employee.']);
